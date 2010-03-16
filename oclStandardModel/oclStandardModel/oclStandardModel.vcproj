@@ -198,6 +198,14 @@
 				RelativePath=".\stSimplex.cl"
 				>
 			</File>
+			<File
+				RelativePath=".\temp.cl"
+				>
+			</File>
+			<File
+				RelativePath=".\vector_add.cl"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

@@ -62,6 +62,13 @@ void OpenCL::writeBuffer(cl_mem deviceMem, void *hostMem, const size_t size, con
 	}
 }
 
-void OpenCL::createProgram(vector<string> kernels) {
-	program = new Program(kernels, &context, &queue);
+Program* OpenCL::createProgram(const vector<string> &kernels) {
+	program = new Program(kernels, &context, &queue, device);
+	return program;
+}
+
+Program* OpenCL::createProgram(const string &k) {
+	vector<string> v(1);
+	v[0] = k;
+	return createProgram(v);
 }

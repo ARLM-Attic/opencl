@@ -1,30 +1,33 @@
-#define N 3
-#define K 3
-#define SIMPLICES 1
-#define CONSTRAINTS 20
-#define TOLERANCE 1.0e-6f
+#define TOLERANCE 1.0e-6
 
-typedef float Matrix[N+1][K+1];
-typedef float Constraints[CONSTRAINTS][N+1];
-
-void columnEchelonForm(Matrix matrix, int* rank, int* independentCols);
-float determinant(const Matrix matrix, int size);
 bool hasStandardOrientation(const float* const coefficients);
-void halfSpaceConstraints(float* const coefficients);
+void getHyperplane(const Matrix points, constraint* const c, const int* basis, const int rank, const int* columns);
 void copyProjectedMatrix(const Matrix src, Matrix dst, const int* basis);
+void halfSpaceConstraints(constraint* const halfSpace);
+float determinant(const Matrix matrix, int size);
+void columnEchelonForm(Matrix matrix, int* rank, int* independentCols);
 
-//////////////////////////////////////////////////////////////////////////////
 
+/* PROBLEMAS:
+	- Saída: vector -> matrix de constraints
+
+
+
+*/
+// Receives K+1 points (columns), each one with N+1 elements (lines, homogeneous coordinates)
 __kernel void stSimplex(__global const Matrix points,
-						__global Constraints constraints,
+						__global int* constraints,
 						__global const int* nckMatrix,
 						__global const int nckRows) {
-	
-	int idx = get_global_id(0);
+	vector<constraint*> v;
 	Matrix echelon;
+	// The highest projection
+	int m = (N < K+1)?(N):(K+1);
+	int rows;
+	int** nk = nchoosekMatrix(N, m, &rows);
 
 	// Iterates through all possible projections
-	for (int d = 0; d < nckRows; d++) {
+	for (int d = 0; d < rows; d++) {
 		const int dim = nk[d][N+1];
 		// Copies the projected matrix to echelon
 		copyProjectedMatrix(points, echelon, nk[d]);
@@ -95,12 +98,9 @@ __kernel void stSimplex(__global const Matrix points,
 			}
 		}
 	}
-	
-
+	free(nk);
+	return v;
 }
-
-
-//////////////////////////////////////////////////////////////////////////////
 
 bool hasStandardOrientation(const float* const coefficients) {
 	for (int i = 0; i < N; i++) {
@@ -112,14 +112,67 @@ bool hasStandardOrientation(const float* const coefficients) {
 	return false;
 }
 
+void getHyperplane(const Matrix points, constraint* const c, const int* basis, const int rank, const int* columns) {
+	// Guarantees the square matrix (it's not square because of the homogeneous coordinates)
+	// The matrix must actually have rank columns and rank+1 rows
+	if (rank != basis[N+1]) {
+		cout << "rank != basis[N+1], exiting" << endl;
+		system("pause");
+		exit(FAILURE);
+	}
+
+	int dimensions[N+1];
+	int index = 0;
+	int it = 0;
+	// Fills the dimensions array
+	while (index < rank) {
+		if (basis[it] != 0) {
+			dimensions[index] = it;
+			index++;
+		}
+		it++;
+	}
+	dimensions[rank] = N;		// homogeneous coordinates
+	
+	c->op = EQ;
+	Matrix m;
+
+	// Initializes the first matrix (first row out) -> first coefficient
+	for (int ln = 0; ln < rank; ln++) {
+		for (int col = 0; col < rank; col++) {
+			m[ln][col] = points[dimensions[ln+1]][col];
+		}
+	}
+	c->coefficients[dimensions[0]] = -1*determinant(m, rank);
+
+	// updates the matrix -> more rank-1 coefficients
+	for (int row = 0; row < rank-1; row++) {
+		for (int col = 0; col < rank; col++) {
+			m[row][col] = points[dimensions[row]][col];
+		}
+		int multiplier = ((row)%2)?(-1):(1);
+		c->coefficients[dimensions[row+1]] = determinant(m, rank)*multiplier;
+	}
+
+	for (int col = 0; col < rank; col++)
+		m[rank-1][col] = points[dimensions[rank-1]][col];
+	// last one is b
+	c->b = determinant(m, rank);
+}
+
 // Calculates the correct constraint for the given half-space
-void halfSpaceConstraints(float* const coefficients) {
+void halfSpaceConstraints(constraint* const halfSpace) {
+	if (hasStandardOrientation(halfSpace->coefficients))
+		halfSpace->op = LE;
+	else
+		halfSpace->op = LEQ;
+	
 	float b = 0;
 	for (int i = 0; i < N; i++) {
-		b += fabs(coefficients[i]);
+		b += fabs(halfSpace->coefficients[i]);
 	}
 	b = b/2;
-	coefficients[N] += b;
+	halfSpace->b += b;
 }
 
 void copyProjectedMatrix(const Matrix src, Matrix dst, const int* basis) {
@@ -131,7 +184,7 @@ void copyProjectedMatrix(const Matrix src, Matrix dst, const int* basis) {
 }
 
 bool isZero(float value, float tolerance) {
-	return (fabs(value) < fabs(tolerance));
+	return (abs(value) < abs(tolerance));
 }
 
 void columnEchelonForm(Matrix matrix, int* rank, int* independentCols) {
@@ -145,9 +198,9 @@ void columnEchelonForm(Matrix matrix, int* rank, int* independentCols) {
 	while ((c != cols) && (r != rows)) {
 		// Find value and index of largest element in the remainder of row r.
 		int k = c;
-		float max = fabs(matrix[r][c]);
+		float max = abs(matrix[r][c]);
 		for (int j=(c+1); j!=cols; ++j) {
-			const float curr = fabs(matrix[r][j]);
+			const float curr = abs(matrix[r][j]);
 			if (max < curr) {
 				k = j;
 				max = curr;
@@ -212,6 +265,7 @@ float determinant(const Matrix matrix, int size) {
 	// Sarrus
 	else if (size == 3) {
 		return matrix[0][0]*matrix[1][1]*matrix[2][2] + matrix[0][1]*matrix[1][2]*matrix[2][0] + matrix[1][0]*matrix[2][1]*matrix[0][2]
-		- (matrix[0][2]*matrix[1][1]*matrix[2][0] + matrix[1][0]*matrix[0][1]*matrix[2][2] + matrix[0][0]*matrix[1][2]*matrix[2][1]);
+			- (matrix[0][2]*matrix[1][1]*matrix[2][0] + matrix[1][0]*matrix[0][1]*matrix[2][2] + matrix[0][0]*matrix[1][2]*matrix[2][1]);
 	}
+	else exit(FAILURE);
 }

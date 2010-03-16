@@ -1,5 +1,5 @@
-#ifndef __OPENCL_H
-#define __OPENCL_H
+#ifndef __OCLPP_OPENCL_H
+#define __OCLPP_OPENCL_H
 
 #include <oclUtils.h>
 #include <vector>
@@ -24,7 +24,6 @@ private:
 	cl_ulong constMemSize;
 	cl_ulong localMemSize;
 
-
 public:
 	OpenCL();
 
@@ -34,17 +33,19 @@ public:
 	void writeBuffer(cl_mem deviceMem, void* hostMem, const size_t size, const size_t offset = 0);
 
 	// KERNEL/PROGRAM MANAGEMENT
-	void createProgram(vector<string> kernels);
+	Program* createProgram(const std::string &k);
+	Program* createProgram(const std::vector<string> &kernels);
+	Program* getProgram() const { return program; }
 
-	inline cl_context getContext() { return context; }
-	inline cl_command_queue getQueue() { return queue; }
-	inline cl_device_id* getDevice() { return device; }
+	inline cl_context getContext() const { return context; }
+	inline cl_command_queue getQueue() const { return queue; }
+	inline cl_device_id* getDevice() const { return device; }
 
-	inline cl_uint getMaxComputeUnits() { return maxComputeUnits; }
-	inline size_t getMaxWorkGroupSize() { return maxWorkGroupSize; }
-	inline cl_ulong getGlobalMemSize() { return globalMemSize; }
-	inline cl_ulong getConstMemSize() { return constMemSize; }
-	inline cl_ulong getLocalMemSize() { return localMemSize; }
+	inline cl_uint getMaxComputeUnits() const { return maxComputeUnits; }
+	inline size_t getMaxWorkGroupSize() const { return maxWorkGroupSize; }
+	inline cl_ulong getGlobalMemSize() const { return globalMemSize; }
+	inline cl_ulong getConstMemSize() const { return constMemSize; }
+	inline cl_ulong getLocalMemSize() const { return localMemSize; }
 
 };
 

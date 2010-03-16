@@ -6,7 +6,7 @@
 #define SIMPLICES 1
 #define TOLERANCE 1.0e-6f
 
-#define FAILURE -1
+#define _OCLPP_FAILURE -1
 
 typedef float Matrix[DIMENSION+1][K+1];
 typedef float Vector[DIMENSION+1];
