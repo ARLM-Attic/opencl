@@ -5,6 +5,7 @@
 #include <cl/cl.h>
 
 #include "definitions.h"
+#include "misc.h"
 
 namespace ocl {
 
@@ -40,7 +41,7 @@ public:
 		}
 		cl_int error = clSetKernelArg(*kernel, completeArgs, sizeof(x), &x);
 		if (error != CL_SUCCESS) {
-			std::cout << "Error enqueueing argument" << std::endl;
+			std::cout << "Error enqueueing argument: " << errorMessage(error) << std::endl;
 			exit(error);
 		}
 		completeArgs++;

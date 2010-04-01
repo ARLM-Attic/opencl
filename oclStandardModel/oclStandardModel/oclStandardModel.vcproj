@@ -40,12 +40,14 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="-ffloat-store"
 				Optimization="0"
 				AdditionalIncludeDirectories="../OCLpp/;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\inc&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\shared\inc&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
+				FloatingPointModel="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -175,15 +177,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Constraint.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\dummy.cl"
-				>
-			</File>
-			<File
-				RelativePath=".\LinearAlgebra.cpp"
 				>
 			</File>
 			<File
@@ -199,7 +193,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\temp.cl"
+				RelativePath=".\stSimplex2.cl"
+				>
+			</File>
+			<File
+				RelativePath=".\tester.cpp"
 				>
 			</File>
 			<File
@@ -213,19 +211,15 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\Constraint.h"
-				>
-			</File>
-			<File
-				RelativePath=".\definitions.h"
-				>
-			</File>
-			<File
-				RelativePath=".\LinearAlgebra.h"
-				>
-			</File>
-			<File
 				RelativePath=".\nchoosek.h"
+				>
+			</File>
+			<File
+				RelativePath=".\stSimplex.h"
+				>
+			</File>
+			<File
+				RelativePath=".\tester.h"
 				>
 			</File>
 		</Filter>

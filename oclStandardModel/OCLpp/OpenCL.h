@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "Program.h"
+#include "misc.h"
 
 namespace ocl {
 
@@ -20,6 +21,7 @@ private:
 
 	cl_uint maxComputeUnits;
 	size_t maxWorkGroupSize;
+	cl_ulong maxMemAllocSize;
 	cl_ulong globalMemSize;
 	cl_ulong constMemSize;
 	cl_ulong localMemSize;
@@ -46,6 +48,7 @@ public:
 	inline cl_ulong getGlobalMemSize() const { return globalMemSize; }
 	inline cl_ulong getConstMemSize() const { return constMemSize; }
 	inline cl_ulong getLocalMemSize() const { return localMemSize; }
+	inline cl_ulong getMaxMemAllocSize() const { return maxMemAllocSize; }
 
 };
 

@@ -156,6 +156,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\misc.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\OpenCL.cpp"
 				>
 			</File>
@@ -175,6 +179,14 @@
 			</File>
 			<File
 				RelativePath=".\Launcher.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Memory.h"
+				>
+			</File>
+			<File
+				RelativePath=".\misc.h"
 				>
 			</File>
 			<File

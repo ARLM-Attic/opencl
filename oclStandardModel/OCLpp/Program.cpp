@@ -6,8 +6,10 @@ using namespace ocl;
 Program::Program(vector<string> kernelNames, cl_context* context, cl_command_queue* queue, cl_device_id* device) {
 	this->context = context;
 	this->queue = queue;
-	this->numKernels = kernelNames.size();
+	//this->numKernels = kernelNames.size();
 	this->device = device;
+
+	const int numFiles = kernelNames.size();
 
 	// Creates the program with the kernels
 	int error = 0;
@@ -21,15 +23,24 @@ Program::Program(vector<string> kernelNames, cl_context* context, cl_command_que
 		}
 		sources[i] = oclLoadProgSource(cPathAndName, "", &sizes[i]);
 	}
-	program = clCreateProgramWithSource (*context, numKernels, (const char**) sources, sizes, &error);
+	program = clCreateProgramWithSource (*context, numFiles, (const char**) sources, sizes, &error);
 	if (error != CL_SUCCESS) {
-		cout << "Error creating the program" << endl;
+		cout << "Error creating the program: " << errorMessage(error) << endl;
 		exit(error);
 	}
+}
+
+Launcher Program::createLauncher(const std::string &kernel) {
+	Launcher l(&kernels[kernel], queue);
+	return l;
+}
+
+void Program::build(const string& args) {
+	int error;
 	// Builds the program
-	error = clBuildProgram (program, 0, NULL, NULL, NULL, NULL);
+	error = clBuildProgram (program, 0, NULL, args.c_str(), NULL, NULL);
 	if (error != CL_SUCCESS) {
-		cout << "Build error:" << endl;
+		cout << "Build error: " << errorMessage(error) << endl;
 		char* buildLog;
 		size_t logSize;
 		clGetProgramBuildInfo(program, *device, CL_PROGRAM_BUILD_LOG, 0, NULL, &logSize);
@@ -43,10 +54,12 @@ Program::Program(vector<string> kernelNames, cl_context* context, cl_command_que
 	}
 
 	// Creates the kernels
+	// Needs to verify if the file compiled is actually a kernel
+	error = clCreateKernelsInProgram(program, 0, NULL, (cl_uint*)&(numKernels));
 	cl_kernel* k = new cl_kernel[numKernels];
 	error = clCreateKernelsInProgram(program, numKernels, k, NULL);
 	if (error != CL_SUCCESS) {
-		cout << "Error creating kernels" << endl;
+		cout << "Error creating kernels: " << errorMessage(error) << endl;
 		exit(error);
 	}
 
@@ -55,14 +68,14 @@ Program::Program(vector<string> kernelNames, cl_context* context, cl_command_que
 		char name[_OCL_MAX_KERNEL_NAME];
 		error = clGetKernelInfo(k[i], CL_KERNEL_FUNCTION_NAME, sizeof(char)*_OCL_MAX_KERNEL_NAME, (void*) name, NULL);
 		if (error != CL_SUCCESS) {
-			cout << "Error creating kernels" << endl;
+			cout << "Error creating kernels: " << errorMessage(error) << endl;
 			exit(error);
 		}
 		kernels[name] = k[i];
 	}
 }
 
-Launcher Program::createLauncher(const std::string &kernel) {
-	Launcher l(&kernels[kernel], queue);
-	return l;
+void Program::build() {
+	string args = "";
+	build(args);
 }

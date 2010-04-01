@@ -7,7 +7,7 @@ OpenCL::OpenCL() {
 	cl_int error = 0;
 	context = clCreateContextFromType(NULL, CL_DEVICE_TYPE_GPU, NULL, NULL, &error);
 	if (error != CL_SUCCESS) {
-		cout << "Error creating context" << endl;
+		cout << "Error creating context: " << errorMessage(error) << endl;
 		exit(error);
 	}
 	size_t devices_size;
@@ -15,18 +15,19 @@ OpenCL::OpenCL() {
 	device = (cl_device_id*) malloc (devices_size);
 	error |= clGetContextInfo(context, CL_CONTEXT_DEVICES, devices_size, device, 0);
 	if (error != CL_SUCCESS) {
-		cout << "Error getting context information" << endl;
+		cout << "Error getting context information: " << errorMessage(error) << endl;
 		exit (error);
 	}
 	queue = clCreateCommandQueue(context, *device, 0, &error);
 	if (error != CL_SUCCESS) {
-		cout << "Error creating command queue" << endl;
+		cout << "Error creating command queue: " << errorMessage(error) << endl;
 		exit(error);
 	}
 
 	// Getting some information about the device
 	clGetDeviceInfo(*device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &maxComputeUnits, NULL);
 	clGetDeviceInfo(*device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxWorkGroupSize, NULL);
+	clGetDeviceInfo(*device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &maxMemAllocSize, NULL);
 	clGetDeviceInfo(*device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &globalMemSize, NULL);
 	clGetDeviceInfo(*device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &constMemSize, NULL);
 	clGetDeviceInfo(*device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &localMemSize, NULL);
@@ -39,7 +40,7 @@ cl_mem OpenCL::createBuffer(const size_t size, const cl_mem_flags flags, void* h
 	if (err == CL_SUCCESS)
 		return ret;
 	else {
-		cout << "Error creating buffer" << endl;
+		cout << "Error creating buffer: " << errorMessage(err) << endl;
 		exit(err);
 	}
 }
@@ -48,7 +49,7 @@ void OpenCL::readBuffer(cl_mem deviceMem, void *hostMem, const size_t size, cons
 	cl_int err = 0;
 	clEnqueueReadBuffer(queue, deviceMem, CL_TRUE, offset, size, hostMem, 0, NULL, NULL);
 	if (err != CL_SUCCESS) {
-		cout << "Error reading buffer" << endl;
+		cout << "Error reading buffer: " << errorMessage(err) << endl;
 		exit(err);
 	}
 }
@@ -57,7 +58,7 @@ void OpenCL::writeBuffer(cl_mem deviceMem, void *hostMem, const size_t size, con
 	cl_int err = 0;
 	clEnqueueWriteBuffer(queue, deviceMem, CL_TRUE, offset, size, hostMem, 0, NULL, NULL);
 	if (err != CL_SUCCESS) {
-		cout << "Error writing buffer" << endl;
+		cout << "Error writing buffer: " << errorMessage(err) << endl;
 		exit(err);
 	}
 }

@@ -9,9 +9,11 @@ Launcher::Launcher(cl_kernel* kernel, cl_command_queue* queue)  {
 	this->kernel = kernel;
 	this->queue = queue;
 	this->dimensions = -1;
+	globalWorkSize[0] = globalWorkSize[1] = globalWorkSize[2] = 
+		localWorkSize[0] = localWorkSize[1] = localWorkSize[2] = 0;
 	cl_int error = clGetKernelInfo(*kernel, CL_KERNEL_NUM_ARGS, sizeof(cl_int), &numArgs, NULL);
 	if (error != CL_SUCCESS) {
-		cout << "Error getting kernel information" << endl;
+		cout << "Error getting kernel information: " << errorMessage(error) << endl;
 		exit(error);
 	}
 }
@@ -81,4 +83,8 @@ void Launcher::run() {
 		exit(_OCLPP_FAILURE);
 	}
 	int error = clEnqueueNDRangeKernel(*queue, *kernel, dimensions, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+	if (error != CL_SUCCESS) {
+		cout << "Error launching kernel: " << errorMessage(error) << endl;
+		exit(error);
+	}
 }
