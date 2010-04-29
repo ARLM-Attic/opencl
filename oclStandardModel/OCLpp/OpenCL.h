@@ -16,9 +16,10 @@ class OpenCL {
 private:
 	cl_context context;
 	cl_command_queue queue;
-	cl_device_id *device;
+	cl_device_id device;
 	Program* program;
 
+	cl_platform_id platform;
 	cl_uint maxComputeUnits;
 	size_t maxWorkGroupSize;
 	cl_ulong maxMemAllocSize;
@@ -41,7 +42,7 @@ public:
 
 	inline cl_context getContext() const { return context; }
 	inline cl_command_queue getQueue() const { return queue; }
-	inline cl_device_id* getDevice() const { return device; }
+	inline const cl_device_id& getDevice() const { return device; }
 
 	inline cl_uint getMaxComputeUnits() const { return maxComputeUnits; }
 	inline size_t getMaxWorkGroupSize() const { return maxWorkGroupSize; }

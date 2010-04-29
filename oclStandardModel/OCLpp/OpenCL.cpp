@@ -5,32 +5,43 @@ using namespace ocl;
 
 OpenCL::OpenCL() {
 	cl_int error = 0;
-	context = clCreateContextFromType(NULL, CL_DEVICE_TYPE_GPU, NULL, NULL, &error);
+	error = oclGetPlatformID(&platform);
+	if (error != CL_SUCCESS) {
+		cout << "Error getting platform id: " << errorMessage(error) << endl;
+		exit(error);
+	}
+	error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL);
+	if (error != CL_SUCCESS) {
+		cout << "Error getting device ids: " << errorMessage(error) << endl;
+		exit(error);
+	}
+	context = clCreateContext(0, 1, &device, NULL, NULL, &error);
+	//context = clCreateContextFromType(platform, CL_DEVICE_TYPE_GPU, NULL, NULL, &error);
 	if (error != CL_SUCCESS) {
 		cout << "Error creating context: " << errorMessage(error) << endl;
 		exit(error);
 	}
-	size_t devices_size;
+	/*size_t devices_size;
 	error = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &devices_size);
 	device = (cl_device_id*) malloc (devices_size);
 	error |= clGetContextInfo(context, CL_CONTEXT_DEVICES, devices_size, device, 0);
 	if (error != CL_SUCCESS) {
 		cout << "Error getting context information: " << errorMessage(error) << endl;
 		exit (error);
-	}
-	queue = clCreateCommandQueue(context, *device, 0, &error);
+	}*/
+	queue = clCreateCommandQueue(context, device, 0, &error);
 	if (error != CL_SUCCESS) {
 		cout << "Error creating command queue: " << errorMessage(error) << endl;
 		exit(error);
 	}
 
 	// Getting some information about the device
-	clGetDeviceInfo(*device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &maxComputeUnits, NULL);
-	clGetDeviceInfo(*device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxWorkGroupSize, NULL);
-	clGetDeviceInfo(*device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &maxMemAllocSize, NULL);
-	clGetDeviceInfo(*device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &globalMemSize, NULL);
-	clGetDeviceInfo(*device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &constMemSize, NULL);
-	clGetDeviceInfo(*device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &localMemSize, NULL);
+	clGetDeviceInfo(device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &maxComputeUnits, NULL);
+	clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxWorkGroupSize, NULL);
+	clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &maxMemAllocSize, NULL);
+	clGetDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &globalMemSize, NULL);
+	clGetDeviceInfo(device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &constMemSize, NULL);
+	clGetDeviceInfo(device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &localMemSize, NULL);
 
 }
 
@@ -64,7 +75,7 @@ void OpenCL::writeBuffer(cl_mem deviceMem, void *hostMem, const size_t size, con
 }
 
 Program* OpenCL::createProgram(const vector<string> &kernels) {
-	program = new Program(kernels, &context, &queue, device);
+	program = new Program(kernels, &context, &queue, &device);
 	return program;
 }
 

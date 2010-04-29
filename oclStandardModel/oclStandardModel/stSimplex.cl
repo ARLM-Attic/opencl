@@ -12,7 +12,7 @@ void getHyperplane(SMatrix points, float* const c, __global const int* basis, co
 
 //////////////////////////////////////////////////////////////////////////////
 
-__kernel void stSimplex(__global int* points,
+__kernel void stSimplex(__global float* points,
 						__global CMatrix constraints,
 						__global const int* nk,
 						__global const int nckRows)
@@ -23,7 +23,7 @@ __kernel void stSimplex(__global int* points,
 
 		// Iterates through all possible projections
 		for (int d = 0; d < nckRows; d++) {
-			const int dim = nk[d*(K+2)+(N+1)]; // nk[d][N+1]
+			const int dim = nk[d*(N+2)+(N+1)]; // nk[d][N+1]
 			// Copies the projected matrix to echelon
 			copyProjectedMatrix(*(SMatrix*)&points[idx*(N+1)][0], echelon, &nk[d*(N+1)]);
 			
