@@ -279,6 +279,38 @@ float determinant(const SMatrix matrix, const int size) {
 	}
 }
 
+void getHyperplane2(const SMatrix points,
+				   float* const c,
+				   __constant const int* const basis,
+				   const int rank) {
+	SMatrix m;
+
+	// Initializes the first matrix (first col out) -> first coefficient
+	for (int h = 0; h < rank; h++) {
+		for (int col = 0; col < rank; col++) {
+			if (col < rank-1)
+				m[col][h] = points[h][col+1];
+			else
+				m[col][h] = 1;
+		}
+	}
+	c[0] = determinant(m, rank);
+
+	// updates the matrix -> more n-1 coefficients
+	for (int col = 0; col < rank-1; col++) {
+		for (int h = 0; h < rank; h++) {
+			m[col][h] = points[h][col];
+		}
+		int multiplier = ((col+1)%2)?(-1):(1);
+		c[col+1] = determinant(m, rank) * multiplier;
+	}
+
+	// last one is b
+	for (int h = 0; h < rank; h++)
+		m[rank-1][h] = points[h][rank-1];
+	c[N] = determinant(m, rank) * -1;
+}
+
 void getHyperplane(const SMatrix points,
 				   float* const c,
 				   __constant const int* const base,

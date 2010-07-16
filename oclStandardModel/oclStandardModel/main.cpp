@@ -13,7 +13,7 @@
 using namespace ocl;
 using namespace std;
 
-#define T 1.0e-4f
+#define T 1.0e-2f
 
 bool equal(float value1, float value2) {
 	return (fabs(value1-value2) < fabs(T));
@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
 
 	clock_t gpu_b = clock();
 	stSimplex.run();
+	cl.finish();
 	clock_t gpu_a = clock();
 
 	const int gpu_d = gpu_a - gpu_b;
@@ -112,18 +113,7 @@ int main(int argc, char **argv) {
 		else
 			equ++;
 	}
-	/*for (int i = 0; i < CONSTRAINTS; i++) {
-		gpu << c_check[i] << "\t";
-		if ((i+1)%(N+1) == 0) {
-			gpu << endl;
-		}
-	}
-	for (int i = 0; i < CONSTRAINTS; i++) {
-		cpu << constraints[i] << "\t";
-		if ((i+1)%(N+1) == 0) {
-			cpu << endl;
-		}
-	}*/
+
 	cout << dif << " different values out of " << CONSTRAINTS << endl;
 	cout << 100*float(dif)/(float)CONSTRAINTS << "% wrong" << endl;
 }

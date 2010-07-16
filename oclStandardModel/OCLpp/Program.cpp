@@ -39,17 +39,16 @@ void Program::build(const string& args) {
 	int error;
 	// Builds the program
 	error = clBuildProgram (program, 0, NULL, args.c_str(), NULL, NULL);
+	char* buildLog;
+	size_t logSize;
+	clGetProgramBuildInfo(program, *device, CL_PROGRAM_BUILD_LOG, 0, NULL, &logSize);
+	buildLog = new char[logSize+1];
+	clGetProgramBuildInfo(program, *device, CL_PROGRAM_BUILD_LOG, logSize, buildLog, NULL);
+	buildLog[logSize] = '\0';
+	cout << buildLog << endl;
+	delete[] buildLog;
 	if (error != CL_SUCCESS) {
 		cout << "Build error: " << errorMessage(error) << endl;
-		char* buildLog;
-		size_t logSize;
-		clGetProgramBuildInfo(program, *device, CL_PROGRAM_BUILD_LOG, 0, NULL, &logSize);
-		buildLog = new char[logSize+1];
-		clGetProgramBuildInfo(program, *device, CL_PROGRAM_BUILD_LOG, logSize, buildLog, NULL);
-		buildLog[logSize] = '\0';
-		cout << buildLog << endl;
-		delete[] buildLog;
-
 		exit(error);
 	}
 

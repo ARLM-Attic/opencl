@@ -21,6 +21,7 @@ OpenCL::OpenCL() {
 		cout << "Error creating context: " << errorMessage(error) << endl;
 		exit(error);
 	}
+
 	/*size_t devices_size;
 	error = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &devices_size);
 	device = (cl_device_id*) malloc (devices_size);
@@ -83,4 +84,8 @@ Program* OpenCL::createProgram(const string &k) {
 	vector<string> v(1);
 	v[0] = k;
 	return createProgram(v);
+}
+
+void OpenCL::finish() {
+	clFinish(queue);
 }

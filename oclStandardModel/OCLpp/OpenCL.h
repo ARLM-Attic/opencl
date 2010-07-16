@@ -40,6 +40,8 @@ public:
 	Program* createProgram(const std::vector<string> &kernels);
 	Program* getProgram() const { return program; }
 
+	void finish();
+
 	inline cl_context getContext() const { return context; }
 	inline cl_command_queue getQueue() const { return queue; }
 	inline const cl_device_id& getDevice() const { return device; }
