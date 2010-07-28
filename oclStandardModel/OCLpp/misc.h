@@ -5,5 +5,6 @@
 #include <string>
 
 std::string errorMessage(const int error);
+char* loadProgSource(const char* filename, size_t* finalLength);
 
 #endif

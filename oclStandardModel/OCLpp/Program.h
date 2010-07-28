@@ -7,7 +7,6 @@
 #include <map>
 #include <string>
 #include <iostream>
-#include <oclUtils.h>
 
 #include "Launcher.h"
 #include "misc.h"

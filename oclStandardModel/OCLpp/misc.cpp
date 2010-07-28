@@ -53,3 +53,25 @@ string errorMessage(const int error) {
 		case CL_INVALID_MIP_LEVEL: return "CL_INVALID_MIP_LEVEL";
 	}
 }
+
+char* loadProgSource(const char* filename, size_t* finalLength)
+{
+	char* returnStr;
+	FILE* file = fopen(filename, "rb");
+	if(file == NULL) return NULL;
+
+	fseek(file, 0, SEEK_END);
+	*finalLength = ftell(file);
+	fseek(file, 0, SEEK_SET);
+
+	returnStr = (char*) malloc(*finalLength+1);
+
+	if(fread(returnStr, sizeof(char), *finalLength, file) != *finalLength) {
+		fclose(file);
+		free(returnStr);
+		return NULL;
+	}
+	returnStr[*finalLength] = '\0';
+
+	return returnStr;
+}
