@@ -17,12 +17,13 @@ Program::Program(vector<string> kernelNames, cl_context* context, cl_command_que
 	size_t* sizes = new size_t[kernelNames.size()];
 	for (size_t i = 0; i < kernelNames.size(); i++) {
 		const char* cPathAndName = kernelNames[i].c_str();
-		if (cPathAndName == 0) {
+		sources[i] = loadProgSource(cPathAndName, &sizes[i]);
+		if (cPathAndName == 0 || sources[i] == NULL) {
 			cout << "File " << kernelNames[i] << " not found, exiting" << endl;
 			exit(_OCLPP_FAILURE);
 		}
-		sources[i] = loadProgSource(cPathAndName, &sizes[i]);
 	}
+	
 	program = clCreateProgramWithSource (*context, numFiles, (const char**) sources, sizes, &error);
 	if (error != CL_SUCCESS) {
 		cout << "Error creating the program: " << errorMessage(error) << endl;
