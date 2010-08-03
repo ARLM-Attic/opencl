@@ -3,6 +3,7 @@
 #include <fstream>
 #include <ctime>
 
+#include <oclUtils.h>
 #include "OpenCL.h"
 
 #include "nchoosek.h"

@@ -164,6 +164,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\OpenCLGL.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Program.cpp"
 				>
 			</File>
@@ -195,6 +199,10 @@
 			</File>
 			<File
 				RelativePath=".\OpenCL.h"
+				>
+			</File>
+			<File
+				RelativePath=".\OpenCLGL.h"
 				>
 			</File>
 			<File

@@ -1,7 +1,7 @@
 #ifndef __OCLPP_OPENCL_H
 #define __OCLPP_OPENCL_H
 
-#include <oclUtils.h>
+#include <CL/opencl.h>
 #include <vector>
 #include <string>
 #include <cstdlib>
@@ -13,7 +13,7 @@
 namespace ocl {
 
 class OpenCL {
-private:
+protected:
 	cl_context context;
 	cl_command_queue queue;
 	cl_device_id device;
@@ -37,7 +37,7 @@ public:
 
 	// KERNEL/PROGRAM MANAGEMENT
 	Program* createProgram(const std::string &k);
-	Program* createProgram(const std::vector<string> &kernels);
+	Program* createProgram(const std::vector<std::string> &kernels);
 	Program* getProgram() const { return program; }
 
 	void finish();

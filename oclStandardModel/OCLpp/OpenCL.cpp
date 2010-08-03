@@ -5,7 +5,7 @@ using namespace ocl;
 
 OpenCL::OpenCL() {
 	cl_int error = 0;
-	error = oclGetPlatformID(&platform);
+	error = clGetPlatformIDs(1, &platform, NULL);
 	if (error != CL_SUCCESS) {
 		cout << "Error getting platform id: " << errorMessage(error) << endl;
 		exit(error);

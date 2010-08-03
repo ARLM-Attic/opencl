@@ -3,6 +3,14 @@
 using namespace ocl;
 using namespace std;
 
+int Launcher::countArgs() {
+	int ret=0;
+	for(int i=0; i<numArgs; i++)
+		if(completeArgs[i])
+			ret++;
+	return ret;
+}
+
 
 Launcher::Launcher(cl_kernel* kernel, cl_command_queue* queue)  {
 	completeArgs = 0;
@@ -16,10 +24,27 @@ Launcher::Launcher(cl_kernel* kernel, cl_command_queue* queue)  {
 		cout << "Error getting kernel information: " << errorMessage(error) << endl;
 		exit(error);
 	}
+	completeArgs = new bool[numArgs];
 }
 
 Launcher::~Launcher() {
+	delete[] completeArgs;
+}
 
+Launcher& Launcher::operator=(const Launcher& l)
+{
+	this->kernel = l.kernel;
+	this->queue = l.queue;
+	this->numArgs = l.numArgs;
+	this->completeArgs = l.completeArgs;
+	this->workDimension = l.workDimension;
+	for(int i=0; i<3; i++) {
+		this->globalWorkSize[i] = l.globalWorkSize[i];
+		this->localWorkSize[i] = l.localWorkSize[i];
+	}
+	this->dimensions = l.dimensions;
+
+	return *this;
 }
 
 Launcher& Launcher::global(const int g) {
@@ -30,6 +55,7 @@ Launcher& Launcher::global(const int g) {
 	globalWorkSize[0] = g;
 	return *this;
 }
+
 Launcher& Launcher::global(const int gx, const int gy) {
 	if (dimensions == -1) dimensions = 2;
 	else if (dimensions != 2) {
@@ -39,6 +65,7 @@ Launcher& Launcher::global(const int gx, const int gy) {
 	globalWorkSize[1] = gy;
 	return *this;
 }
+
 Launcher& Launcher::global(const int gx, const int gy, const int gz) {
 	if (dimensions == -1) dimensions = 3;
 	else if (dimensions != 3) {
@@ -58,6 +85,7 @@ Launcher& Launcher::local(const int l) {
 	localWorkSize[0] = l;
 	return *this;
 }
+
 Launcher& Launcher::local(const int lx, const int ly) {
 	if (dimensions == -1) dimensions = 2;
 	else if (dimensions != 2) {
@@ -67,6 +95,7 @@ Launcher& Launcher::local(const int lx, const int ly) {
 	localWorkSize[1] = ly;
 	return *this;
 }
+
 Launcher& Launcher::local(const int lx, const int ly, const int lz) {
 	if (dimensions == -1) dimensions = 3;
 	else if (dimensions != 3) {
@@ -77,9 +106,15 @@ Launcher& Launcher::local(const int lx, const int ly, const int lz) {
 	localWorkSize[2] = lz;
 	return *this;
 }
+
 void Launcher::run() {
-	if (completeArgs != numArgs) {
+	if (countArgs() != numArgs) {
 		cout << "You have not enqueued enough arguments" << endl;
+		cout << "Missing arguments";
+		for(int i=0; i<numArgs; i++)
+			if(!completeArgs[i])
+				cout << " " << i;
+		cout << endl;
 		exit(_OCLPP_FAILURE);
 	}
 	int error = clEnqueueNDRangeKernel(*queue, *kernel, dimensions, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -88,3 +123,19 @@ void Launcher::run() {
 		exit(error);
 	}
 }
+
+/*
+Launcher& Launcher::localMemory(const int index, const size_t size) {
+	if(index >= numArgs || index < 0) {
+		cout << "Error enqueueing local memory: index out of range" << std::endl;
+		exit(_OCLPP_FAILURE);
+	}
+	cl_int error = clSetKernelArg(*kernel, completeArgs, size), NULL);
+	if (error != CL_SUCCESS) {
+		std::cout << "Error enqueueing argument: " << errorMessage(error) << std::endl;
+		exit(error);
+	}
+	completeArgs++;
+	return *this;
+}
+*/
