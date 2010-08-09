@@ -21,12 +21,14 @@ private:
 	int dimensions;
 
 	int countArgs();
+	void attrib(const Launcher& l);
 public:
 	Launcher() {};
+	Launcher(const Launcher& l);
 	Launcher(cl_kernel* kernel, cl_command_queue* queue);
 	~Launcher();
 
-	Launcher& operator=(const Launcher& l);
+	Launcher operator=(Launcher l);
 
 	Launcher& global(const int g);
 	Launcher& global(const int gx, const int gy);
@@ -57,13 +59,17 @@ public:
 		int nArgs = countArgs();
 		if (nArgs >= numArgs) {
 			std::cout << "Error trying to enqueue too much arguments" << std::endl;
+			std::cout << "Expected " << numArgs << ", got " << nArgs << std::endl;
 			exit(_OCLPP_FAILURE);
 		}
-		this->arg(nArgs, x);
+		for(int i=0; i<numArgs; i++)
+			if(!completeArgs[i])
+				return arg(i, x);
 		return *this;
 	}
 
-	//Launcher& localMemory(const int index, const size_t size);
+	Launcher& localMemory(const int index, const size_t size);
+	Launcher& localMemory(const size_t size);
 };
 
 }

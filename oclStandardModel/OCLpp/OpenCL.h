@@ -34,6 +34,7 @@ public:
 	cl_mem createBuffer(const size_t size, const cl_mem_flags flags = CL_MEM_READ_WRITE, void* hostMem = NULL);
 	void readBuffer(cl_mem deviceMem, void* hostMem, const size_t size, const size_t offset = 0);
 	void writeBuffer(cl_mem deviceMem, void* hostMem, const size_t size, const size_t offset = 0);
+	void copyBuffer(cl_mem srcBuffer, cl_mem dstBuffer, const size_t size, const size_t srcOffset=0, const size_t dstOffset=0);
 
 	// KERNEL/PROGRAM MANAGEMENT
 	Program* createProgram(const std::string &k);

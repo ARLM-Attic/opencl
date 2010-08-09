@@ -59,7 +59,7 @@ cl_mem OpenCL::createBuffer(const size_t size, const cl_mem_flags flags, void* h
 
 void OpenCL::readBuffer(cl_mem deviceMem, void *hostMem, const size_t size, const size_t offset) {
 	cl_int err = 0;
-	clEnqueueReadBuffer(queue, deviceMem, CL_TRUE, offset, size, hostMem, 0, NULL, NULL);
+	err = clEnqueueReadBuffer(queue, deviceMem, CL_TRUE, offset, size, hostMem, 0, NULL, NULL);
 	if (err != CL_SUCCESS) {
 		cout << "Error reading buffer: " << errorMessage(err) << endl;
 		exit(err);
@@ -68,9 +68,18 @@ void OpenCL::readBuffer(cl_mem deviceMem, void *hostMem, const size_t size, cons
 
 void OpenCL::writeBuffer(cl_mem deviceMem, void *hostMem, const size_t size, const size_t offset) {
 	cl_int err = 0;
-	clEnqueueWriteBuffer(queue, deviceMem, CL_TRUE, offset, size, hostMem, 0, NULL, NULL);
+	err = clEnqueueWriteBuffer(queue, deviceMem, CL_TRUE, offset, size, hostMem, 0, NULL, NULL);
 	if (err != CL_SUCCESS) {
 		cout << "Error writing buffer: " << errorMessage(err) << endl;
+		exit(err);
+	}
+}
+
+void OpenCL::copyBuffer(cl_mem srcBuffer, cl_mem dstBuffer, const size_t size, const size_t srcOffset, const size_t dstOffset) {
+	cl_int err = 0;
+	err = clEnqueueCopyBuffer(queue, srcBuffer, dstBuffer, srcOffset, dstOffset, size, 0, NULL, NULL);
+	if(err != CL_SUCCESS) {
+		cout << "Error copying buffer: " << errorMessage(err) << endl;
 		exit(err);
 	}
 }

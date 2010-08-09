@@ -5,15 +5,38 @@ using namespace std;
 
 int Launcher::countArgs() {
 	int ret=0;
+
 	for(int i=0; i<numArgs; i++)
 		if(completeArgs[i])
 			ret++;
+	
 	return ret;
+}
+
+void Launcher::attrib(const Launcher& l) {
+	kernel = l.kernel;
+	queue = l.queue;
+	numArgs = l.numArgs;
+
+	completeArgs = new bool[numArgs];
+
+	for(int i=0; i<numArgs; i++)
+		completeArgs[i] = l.completeArgs[i];
+
+	workDimension = l.workDimension;
+	for(int i=0; i<3; i++) {
+		globalWorkSize[i] = l.globalWorkSize[i];
+		localWorkSize[i] = l.localWorkSize[i];
+	}
+	dimensions = l.dimensions;
+}
+
+Launcher::Launcher(const Launcher& l) {
+	attrib(l);
 }
 
 
 Launcher::Launcher(cl_kernel* kernel, cl_command_queue* queue)  {
-	completeArgs = 0;
 	this->kernel = kernel;
 	this->queue = queue;
 	this->dimensions = -1;
@@ -24,26 +47,17 @@ Launcher::Launcher(cl_kernel* kernel, cl_command_queue* queue)  {
 		cout << "Error getting kernel information: " << errorMessage(error) << endl;
 		exit(error);
 	}
-	completeArgs = new bool[numArgs];
+	this->completeArgs = (bool*) malloc(numArgs*sizeof(bool));//new bool[numArgs];
+	for(int i=0; i<numArgs; i++)
+		this->completeArgs[i] = false;
 }
 
 Launcher::~Launcher() {
 	delete[] completeArgs;
 }
 
-Launcher& Launcher::operator=(const Launcher& l)
-{
-	this->kernel = l.kernel;
-	this->queue = l.queue;
-	this->numArgs = l.numArgs;
-	this->completeArgs = l.completeArgs;
-	this->workDimension = l.workDimension;
-	for(int i=0; i<3; i++) {
-		this->globalWorkSize[i] = l.globalWorkSize[i];
-		this->localWorkSize[i] = l.localWorkSize[i];
-	}
-	this->dimensions = l.dimensions;
-
+Launcher Launcher::operator=(Launcher l) {
+	attrib(l);
 	return *this;
 }
 
@@ -124,18 +138,30 @@ void Launcher::run() {
 	}
 }
 
-/*
 Launcher& Launcher::localMemory(const int index, const size_t size) {
 	if(index >= numArgs || index < 0) {
-		cout << "Error enqueueing local memory: index out of range" << std::endl;
+		cout << "Error enqueueing local memory: index out of range" << endl;
 		exit(_OCLPP_FAILURE);
 	}
-	cl_int error = clSetKernelArg(*kernel, completeArgs, size), NULL);
+	cl_int error = clSetKernelArg(*kernel, index, size, NULL);
 	if (error != CL_SUCCESS) {
-		std::cout << "Error enqueueing argument: " << errorMessage(error) << std::endl;
+		cout << "Error enqueueing argument: " << errorMessage(error) << endl;
 		exit(error);
 	}
-	completeArgs++;
+	completeArgs[index] = true;
 	return *this;
 }
-*/
+
+Launcher& Launcher::localMemory(const size_t size)
+{
+	int nArgs = countArgs();
+	if (nArgs >= numArgs) {
+		cout << "Error trying to enqueue too much arguments" << endl;
+		cout << "Expected " << numArgs << ", got " << nArgs << endl;
+		exit(_OCLPP_FAILURE);
+	}
+	for(int i=0; i<numArgs; i++)
+		if(!completeArgs[i])
+			return localMemory(i, size);
+	return *this;
+}
