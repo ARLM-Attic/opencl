@@ -53,7 +53,11 @@ Launcher::Launcher(cl_kernel* kernel, cl_command_queue* queue)  {
 }
 
 Launcher::~Launcher() {
-	delete[] completeArgs;
+	if(completeArgs != NULL)
+		delete[] completeArgs;
+
+	//if(kernel != NULL)
+	//	clReleaseKernel(*kernel);
 }
 
 Launcher Launcher::operator=(Launcher l) {

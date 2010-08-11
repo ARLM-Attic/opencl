@@ -46,17 +46,19 @@ OpenCL::OpenCL() {
 
 }
 
-cl_mem OpenCL::createBuffer(const size_t size, const cl_mem_flags flags, void* hostMem) {
+Buffer* OpenCL::createBuffer(const size_t size, const cl_mem_flags flags, void* hostMem) {
 	cl_int err = 0;
-	cl_mem ret = clCreateBuffer(context, flags, size, hostMem, &err);
-	if (err == CL_SUCCESS)
+	cl_mem buf = clCreateBuffer(context, flags, size, hostMem, &err);
+	if (err == CL_SUCCESS) {
+		Buffer* ret = new Buffer(buf, &queue);
 		return ret;
-	else {
+	} else {
 		cout << "Error creating buffer: " << errorMessage(err) << endl;
 		exit(err);
 	}
 }
 
+/*
 void OpenCL::readBuffer(cl_mem deviceMem, void *hostMem, const size_t size, const size_t offset) {
 	cl_int err = 0;
 	err = clEnqueueReadBuffer(queue, deviceMem, CL_TRUE, offset, size, hostMem, 0, NULL, NULL);
@@ -82,6 +84,29 @@ void OpenCL::copyBuffer(cl_mem srcBuffer, cl_mem dstBuffer, const size_t size, c
 		cout << "Error copying buffer: " << errorMessage(err) << endl;
 		exit(err);
 	}
+}
+//*/
+
+Image2D* OpenCL::createImage2D(const size_t width, const size_t height, const size_t rowPitch, const cl_mem_flags flags, const cl_image_format* format, void* hostMem) {
+	cl_int err = 0;
+	cl_mem im2d = clCreateImage2D(context, flags, format, width, height, rowPitch, hostMem, &err);
+	if(err != CL_SUCCESS) {
+		cout << "Error creating Image2D: " << errorMessage(err) << endl;
+		exit(err);
+	}
+	Image2D* ret = new Image2D(im2d, rowPitch, &queue);
+	return ret;
+}
+
+Image3D* OpenCL::createImage3D(const size_t width, const size_t height, const size_t depth, const size_t rowPitch, const size_t slicePitch, const cl_mem_flags flags, const cl_image_format* format, void* hostMem) {
+	cl_int err = 0;
+	cl_mem im3d = clCreateImage3D(context, flags, format, width, height, depth, rowPitch, slicePitch, hostMem, &err);
+	if(err != CL_SUCCESS) {
+		cout << "Error creating Image3D: " << errorMessage(err) << endl;
+		exit(err);
+	}
+	Image3D* ret = new Image3D(im3d, rowPitch, slicePitch, &queue);
+	return ret;
 }
 
 Program* OpenCL::createProgram(const vector<string> &kernels) {

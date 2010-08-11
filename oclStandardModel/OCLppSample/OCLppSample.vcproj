@@ -41,6 +41,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../OCLpp/;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\inc&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\shared\inc&quot;"
+				PreprocessorDefinitions="WIN32"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"

@@ -23,7 +23,7 @@ private:
 	int countArgs();
 	void attrib(const Launcher& l);
 public:
-	Launcher() {};
+	Launcher() { kernel=NULL; queue=NULL; completeArgs=NULL; };
 	Launcher(const Launcher& l);
 	Launcher(cl_kernel* kernel, cl_command_queue* queue);
 	~Launcher();

@@ -29,7 +29,8 @@ int main(int argc, char **argv) {
 	const int _m_ = (N < K+1)?(N):(K+1);
 	int* nckv = nchoosekVector(N, _m_, &nckRows);
 	const int nck_size = (N+2)*nckRows*sizeof(int);
-	cl_mem nck_d = cl.createBuffer(nck_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nckv);
+	//cl_mem nck_d = cl.createBuffer(nck_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nckv);
+	Buffer* nck_d = cl.createBuffer(nck_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nckv);
 
 	// Constraints matrix
 	cout << "Allocating constraints matrix..." << endl;
@@ -42,8 +43,10 @@ int main(int argc, char **argv) {
 		else
 			constraints[c] = -1.0f;
 	}
-	cl_mem constraints_d =
-		cl.createBuffer(c_size*sizeof(float), CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, constraints);
+	//cl_mem constraints_d =
+	//	cl.createBuffer(c_size*sizeof(float), CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, constraints);
+	Buffer* constraints_d =
+			cl.createBuffer(c_size*sizeof(float), CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, constraints);
 
 	// Simplices matrix
 	cout << "Allocating simplices matrix..." << endl;
@@ -59,7 +62,8 @@ int main(int argc, char **argv) {
 		if (i%((N+1)*(K+1))>=(N*(K+1)))
 			simplices[i] = 1;
 	}
-	cl_mem simplices_d = cl.createBuffer(s_size*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, simplices);
+	//cl_mem simplices_d = cl.createBuffer(s_size*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, simplices);
+	Buffer* simplices_d = cl.createBuffer(s_size*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, simplices);
 	/*************************************************************************************************************/
 
 	cout << "Building program..." << endl;
@@ -73,7 +77,8 @@ int main(int argc, char **argv) {
 
 	cout << "Enqueueing arguments..." << endl;
 	Launcher stSimplex = program->createLauncher("stSimplex").global(global_ws).local(LOCAL_WORKSIZE);
-	stSimplex.arg(simplices_d).arg(constraints_d).arg(nck_d).arg(nckRows);
+	//stSimplex.arg(simplices_d).arg(constraints_d).arg(nck_d).arg(nckRows);
+	stSimplex.arg(simplices_d->getMem()).arg(constraints_d->getMem()).arg(nck_d->getMem()).arg(nckRows);
 	cout << "Launching kernel..." << endl;
 
 	clock_t gpu_b = clock();
@@ -93,7 +98,8 @@ int main(int argc, char **argv) {
 	// PERFORMING TEST
 	cout << "Reading back..." << endl;
 	float* c_check = new float[c_size];
-	cl.readBuffer(constraints_d, c_check, c_size*sizeof(float));
+	//cl.readBuffer(constraints_d, c_check, c_size*sizeof(float));
+	constraints_d->read(c_check, c_size*sizeof(float));
 	cout << "Performing computation on CPU" << endl;
 	
 	clock_t cpu_b = clock();

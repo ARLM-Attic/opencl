@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 #include "OpenCL.h"
 #include "Timer.h"
 
@@ -19,17 +20,20 @@ int main()
 	float* dst_h = new float[SIZE];
 
 	for(int i=0; i<SIZE; i++) {
-		src_a_h[i] = i;
-		src_b_h[i] = i;
+		src_a_h[i] = (float)i;
+		src_b_h[i] = (float)i;
 	}
 
 	ocl::Timer timer;
 	double time;
 
 	timer.start();
-	cl_mem src_a_d = opencl.createBuffer(SIZE*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, src_a_h);
-	cl_mem src_b_d = opencl.createBuffer(SIZE*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, src_b_h);
-	cl_mem dst_d = opencl.createBuffer(SIZE*sizeof(float), CL_MEM_WRITE_ONLY);
+	//cl_mem src_a_d = opencl.createBuffer(SIZE*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, src_a_h);
+	ocl::Buffer* src_a_d = opencl.createBuffer(SIZE*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, src_a_h);
+	//cl_mem src_b_d = opencl.createBuffer(SIZE*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, src_b_h);
+	ocl::Buffer* src_b_d = opencl.createBuffer(SIZE*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, src_b_h);
+	//cl_mem dst_d = opencl.createBuffer(SIZE*sizeof(float), CL_MEM_WRITE_ONLY);
+	ocl::Buffer* dst_d = opencl.createBuffer(SIZE*sizeof(float), CL_MEM_WRITE_ONLY);
 	opencl.finish();
 	time = timer.getTime();
 	cout << "Buffers Creation Time: " << time << endl;
@@ -38,14 +42,15 @@ int main()
 
 	const size_t global_ws = SIZE, local_ws = 512;
 	kernelLauncher.global(global_ws).local(local_ws);
-	kernelLauncher.arg(src_a_d).arg(src_b_d).arg(dst_d).arg(SIZE);
+	kernelLauncher.arg(src_a_d->getMem()).arg(src_b_d->getMem()).arg(dst_d->getMem()).arg(SIZE);
 	timer.start();
 	kernelLauncher.run();
 	opencl.finish();
 	time = timer.getTime();
 	cout << "Kernel Run Time: " << time << endl;
 
-	opencl.readBuffer(dst_d, dst_h, SIZE*sizeof(float));
+	//opencl.readBuffer(dst_d, dst_h, SIZE*sizeof(float));
+	dst_d->read(dst_h, SIZE*sizeof(float));
 	opencl.finish();
 
 	for(int i=0; i<SIZE; i++)
