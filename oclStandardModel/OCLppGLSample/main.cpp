@@ -28,7 +28,8 @@ void idle();
 
 ocl::OpenCL cl;
 ocl::Launcher kernelLauncher;
-cl_mem cl_pbos[2] = {0,0};
+//cl_mem cl_pbos[2] = {0,0};
+ocl::Buffer* cl_pbos[2];
 size_t szLocalWorkSize[2];
 size_t szGlobalWorkSize[2];
 cl_int ciErrNum;
@@ -55,7 +56,8 @@ int main(int argc, const char **argv)
 	prog->build();
 
 	kernelLauncher = prog->createLauncher("postprocess");
-	kernelLauncher.arg(cl_pbos[0]).arg(cl_pbos[1]).arg(image_width).arg(image_height);
+	//kernelLauncher.arg(cl_pbos[0]).arg(cl_pbos[1]).arg(image_width).arg(image_height);
+	kernelLauncher.arg(cl_pbos[0]->getMem()).arg(cl_pbos[1]->getMem()).arg(image_width).arg(image_height);
 
 	glutMainLoop();
 
@@ -159,7 +161,8 @@ void pboRegister()
 
 	GLubyte* ptr = (GLubyte*)glMapBufferARB(GL_PIXEL_PACK_BUFFER_ARB, GL_READ_ONLY_ARB);
 
-	cl.writeBuffer(cl_pbos[0], ptr, sizeof(unsigned int) * image_height * image_width, 0);
+	//cl.writeBuffer(cl_pbos[0], ptr, sizeof(unsigned int) * image_height * image_width, 0);
+	cl_pbos[0]->write(ptr, sizeof(unsigned int) * image_height * image_width, 0);
 
 	glUnmapBufferARB(GL_PIXEL_PACK_BUFFER_ARB);
 	glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, 0);
@@ -174,7 +177,8 @@ void pboUnregister()
 	// map the buffer object into client's memory
 	GLubyte* ptr = (GLubyte*)glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
 
-	cl.readBuffer(cl_pbos[1], ptr, sizeof(unsigned int) * image_height * image_width);
+	//cl.readBuffer(cl_pbos[1], ptr, sizeof(unsigned int) * image_height * image_width);
+	cl_pbos[1]->read(ptr, sizeof(unsigned int) * image_height * image_width);
 
 	glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB); 
 	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
