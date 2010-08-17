@@ -63,7 +63,6 @@ void Buffer::unmap(void* mappedPtr) {
 }
 
 void Buffer::copyToImage2D(Image2D& dst, const size_t size[2], const size_t srcOffset, const size_t dstOffset[2]) {
-	/**/
 	cl_int err = 0;
 	err = clEnqueueCopyBufferToImage(*queue, mem, dst.getMem(), srcOffset, dstOffset, size, 0, NULL, NULL);
 	if(err != CL_SUCCESS) {
@@ -73,11 +72,19 @@ void Buffer::copyToImage2D(Image2D& dst, const size_t size[2], const size_t srcO
 }
 
 void Buffer::copyToImage3D(Image2D& dst, const size_t size[3], const size_t srcOffset, const size_t dstOffset[3]) {
-	/**/
 	cl_int err = 0;
 	err = clEnqueueCopyBufferToImage(*queue, mem, dst.getMem(), srcOffset, dstOffset, size, 0, NULL, NULL);
 	if(err != CL_SUCCESS) {
 		cout << "Error copying Buffer to Image3D: " << errorMessage(err) << endl;
+		exit(err);
+	}
+}
+
+void Buffer::getMemInfo(const cl_mem_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize) {
+	cl_int err = 0;
+	err = clGetMemObjectInfo (mem, paramName, paramValueSize, paramValue, retSize);
+	if(err != CL_SUCCESS) {
+		cout << "Error getting Buffer info: " << errorMessage(err) << endl;
 		exit(err);
 	}
 }

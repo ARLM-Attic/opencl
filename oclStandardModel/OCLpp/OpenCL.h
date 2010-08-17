@@ -1,3 +1,9 @@
+/**
+@mainpage	OpenCL
+@author		Bruno Jurkovski and Leonardo Chatain
+@date		08/17/2010
+**/
+
 #ifndef __OCLPP_OPENCL_H
 #define __OCLPP_OPENCL_H
 
@@ -31,23 +37,22 @@ protected:
 	cl_ulong localMemSize;
 
 public:
+	/** @brief Default constructor
+	**/
 	OpenCL();
 
 	// MEMORY MANAGEMENT
-	//cl_mem createBuffer(const size_t size, const cl_mem_flags flags = CL_MEM_READ_WRITE, void* hostMem = NULL);
+	/** @brief			Creates a Buffer object
+		@param[size]	is the size in bytes of the buffer memory object to be allocated.
+		@param[flags]	is a bit-field that is used to specify allocation and usage information such as the memory arena that should be used to allocate the buffer object and how it will be used.
+		@param[hostMem]	is a pointer to the buffer data that may already be allocated by the application. The size of the buffer that host_ptr points to must be >= size bytes. Passing in a pointer to an already allocated buffer on the host and using it as a buffer object allows applications to share data efficiently with kernels and the host.
+		@return			A Buffer object.
+	**/
 	Buffer* createBuffer(const size_t size, const cl_mem_flags flags = CL_MEM_READ_WRITE, void* hostMem = NULL);
-
-	//cl_mem createImage2D(const size_t width, const size_t height, const size_t rowPitch, const cl_mem_flags flags, const cl_image_format* format, void* hostMem = NULL);
 	Image2D* createImage2D(const size_t width, const size_t height, const size_t rowPitch, const cl_mem_flags flags, const cl_image_format* format, void* hostMem = NULL);
-	//cl_mem createImage3D(const size_t width, const size_t height, const size_t depth, const size_t rowPitch, const size_t slicePitch, const cl_mem_flags flags, const cl_image_format* format, void* hostMem = NULL);
 	Image3D* createImage3D(const size_t width, const size_t height, const size_t depth, const size_t rowPitch, const size_t slicePitch, const cl_mem_flags flags, const cl_image_format* format, void* hostMem = NULL);
 	
-	//vector<cl_image_format*> getSupportedImageFormats(cl_mem_flags flags, cl_mem_object_type imageType, cl_uint numEntries);
-
-	/* Deprecated - Memory Class' methods */
-	//void readBuffer(cl_mem deviceMem, void* hostMem, const size_t size, const size_t offset = 0);
-	//void writeBuffer(cl_mem deviceMem, void* hostMem, const size_t size, const size_t offset = 0);
-	//void copyBuffer(cl_mem srcBuffer, cl_mem dstBuffer, const size_t size, const size_t srcOffset=0, const size_t dstOffset=0);
+	std::vector<cl_image_format>* getSupportedImageFormats(const cl_mem_flags flags, const cl_mem_object_type imageType);
 
 	// KERNEL/PROGRAM MANAGEMENT
 	Program* createProgram(const std::string &k);
@@ -67,6 +72,9 @@ public:
 	inline cl_ulong getLocalMemSize() const { return localMemSize; }
 	inline cl_ulong getMaxMemAllocSize() const { return maxMemAllocSize; }
 
+	void getDeviceInfo(const cl_device_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize);
+	void getContextInfo(const cl_context_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize);
+	void getCommandQueueInfo(const cl_command_queue_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize);
 };
 
 }

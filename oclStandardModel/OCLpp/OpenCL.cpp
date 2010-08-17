@@ -58,35 +58,6 @@ Buffer* OpenCL::createBuffer(const size_t size, const cl_mem_flags flags, void* 
 	}
 }
 
-/*
-void OpenCL::readBuffer(cl_mem deviceMem, void *hostMem, const size_t size, const size_t offset) {
-	cl_int err = 0;
-	err = clEnqueueReadBuffer(queue, deviceMem, CL_TRUE, offset, size, hostMem, 0, NULL, NULL);
-	if (err != CL_SUCCESS) {
-		cout << "Error reading buffer: " << errorMessage(err) << endl;
-		exit(err);
-	}
-}
-
-void OpenCL::writeBuffer(cl_mem deviceMem, void *hostMem, const size_t size, const size_t offset) {
-	cl_int err = 0;
-	err = clEnqueueWriteBuffer(queue, deviceMem, CL_TRUE, offset, size, hostMem, 0, NULL, NULL);
-	if (err != CL_SUCCESS) {
-		cout << "Error writing buffer: " << errorMessage(err) << endl;
-		exit(err);
-	}
-}
-
-void OpenCL::copyBuffer(cl_mem srcBuffer, cl_mem dstBuffer, const size_t size, const size_t srcOffset, const size_t dstOffset) {
-	cl_int err = 0;
-	err = clEnqueueCopyBuffer(queue, srcBuffer, dstBuffer, srcOffset, dstOffset, size, 0, NULL, NULL);
-	if(err != CL_SUCCESS) {
-		cout << "Error copying buffer: " << errorMessage(err) << endl;
-		exit(err);
-	}
-}
-//*/
-
 Image2D* OpenCL::createImage2D(const size_t width, const size_t height, const size_t rowPitch, const cl_mem_flags flags, const cl_image_format* format, void* hostMem) {
 	cl_int err = 0;
 	cl_mem im2d = clCreateImage2D(context, flags, format, width, height, rowPitch, hostMem, &err);
@@ -122,4 +93,51 @@ Program* OpenCL::createProgram(const string &k) {
 
 void OpenCL::finish() {
 	clFinish(queue);
+}
+
+void OpenCL::getDeviceInfo(const cl_device_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize) {
+	cl_int  err=0;
+	err = clGetDeviceInfo (device, paramName, paramValueSize, paramValue, retSize);
+	if(err != CL_SUCCESS) {
+		cout << "Error getting device info:" << errorMessage(err) << endl;
+		exit(err);
+	}
+}
+
+void OpenCL::getContextInfo(const cl_context_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize) {
+	cl_int err = 0;
+	err = clGetContextInfo(context, paramName, paramValueSize, paramValue, retSize);
+	if(err != CL_SUCCESS) {
+		cout << "Error getting context info: " << errorMessage(err) << endl;
+		exit(err);
+	}
+}
+
+void OpenCL::getCommandQueueInfo(const cl_command_queue_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize) {
+	cl_int err = 0;
+	err = clGetCommandQueueInfo (queue, paramName, paramValueSize, paramValue, retSize);
+	if(err != CL_SUCCESS) {
+		cout << "Error getting command queue info." << errorMessage(err) << endl;
+		exit(err);
+	}
+}
+
+vector<cl_image_format>* OpenCL::getSupportedImageFormats(const cl_mem_flags flags, const cl_mem_object_type imageType) {
+	cl_uint numEntries;
+	cl_int err = clGetSupportedImageFormats(context, flags, imageType, 0, NULL, &numEntries);
+	if (err != CL_SUCCESS) {
+		cout << "0 Image formats supported: " << errorMessage(err) << endl;
+		exit(err);
+	}
+
+	cl_image_format* value = (cl_image_format*) malloc(numEntries * sizeof(cl_image_format));
+	err = clGetSupportedImageFormats(context, flags, imageType, numEntries, value, NULL);
+	if (err != CL_SUCCESS) {
+		cout << "Error getting supported Image formats: " << errorMessage(err) << endl;
+		exit(err);
+	}
+
+	vector<cl_image_format>* formats = new vector<cl_image_format>(numEntries);
+	formats->assign(&value[0], &value[numEntries]);
+	return formats;
 }
