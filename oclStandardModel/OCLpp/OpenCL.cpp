@@ -95,31 +95,67 @@ void OpenCL::finish() {
 	clFinish(queue);
 }
 
-void OpenCL::getDeviceInfo(const cl_device_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize) {
-	cl_int  err=0;
-	err = clGetDeviceInfo (device, paramName, paramValueSize, paramValue, retSize);
+void* OpenCL::getDeviceInfo(const cl_device_info paramName) {
+	cl_int err=0;
+	size_t size;
+	err = clGetDeviceInfo (device, paramName, 0, NULL, &size);
 	if(err != CL_SUCCESS) {
-		cout << "Error getting device info:" << errorMessage(err) << endl;
+		cout << "Error getting device info: " << errorMessage(err) << endl;
 		exit(err);
 	}
+	
+	if(size > 0) {
+		void* info = malloc(size);
+		err = clGetDeviceInfo(device, paramName, size, info, &size);
+		if(err != CL_SUCCESS) {
+			cout << "Error getting device info: " << errorMessage(err) << endl;
+			exit(err);
+		}
+		return info;
+	}
+	else return NULL;
 }
 
-void OpenCL::getContextInfo(const cl_context_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize) {
+void* OpenCL::getContextInfo(const cl_context_info paramName) {
 	cl_int err = 0;
-	err = clGetContextInfo(context, paramName, paramValueSize, paramValue, retSize);
+	size_t size;
+	err = clGetContextInfo(context, paramName, 0, NULL, &size);
 	if(err != CL_SUCCESS) {
 		cout << "Error getting context info: " << errorMessage(err) << endl;
 		exit(err);
 	}
+
+	if(size > 0) {
+		void* info = malloc(size);
+		err = clGetContextInfo(context, paramName, size, info, &size);
+		if(err != CL_SUCCESS) {
+			cout << "Error getting context info: " << errorMessage(err) << endl;
+			exit(err);
+		}
+		return info;
+	}
+	else return NULL;
 }
 
-void OpenCL::getCommandQueueInfo(const cl_command_queue_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize) {
+void* OpenCL::getCommandQueueInfo(const cl_command_queue_info paramName) {
 	cl_int err = 0;
-	err = clGetCommandQueueInfo (queue, paramName, paramValueSize, paramValue, retSize);
+	size_t size;
+	err = clGetCommandQueueInfo(queue, paramName, 0, NULL, &size);
 	if(err != CL_SUCCESS) {
-		cout << "Error getting command queue info." << errorMessage(err) << endl;
+		cout << "Error getting command queue info: " << errorMessage(err) << endl;
 		exit(err);
 	}
+
+	if(size > 0) {
+		void* info = malloc(size);
+		err = clGetCommandQueueInfo(queue, paramName, size, info, &size);
+		if(err != CL_SUCCESS) {
+			cout << "Error getting command queue info: " << errorMessage(err) << endl;
+			exit(err);
+		}
+		return info;
+	}
+	else return NULL;
 }
 
 vector<cl_image_format>* OpenCL::getSupportedImageFormats(const cl_mem_flags flags, const cl_mem_object_type imageType) {

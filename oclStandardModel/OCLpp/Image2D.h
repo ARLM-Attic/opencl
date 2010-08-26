@@ -21,7 +21,7 @@ class Image2D : public Buffer {
 
 		void copyToBuffer(Buffer& dst, const size_t size[2], const size_t srcOffset[2], const size_t dstOffset=0);
 
-		void getInfo(const cl_image_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize);
+		void* getInfo(const cl_image_info paramName);
 };
 
 }

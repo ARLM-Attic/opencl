@@ -3,7 +3,7 @@
 
 #define N 3
 #define K 2
-#define SIMPLICES 1048576	//(1024*1024)
+#define _SIMPLICES 1048576	//(1024*1024)
 #define C_PER_SIMPLEX 16
 #define CONSTRAINTS (SIMPLICES*C_PER_SIMPLEX)
 #define TOLERANCE 1.0e-5f

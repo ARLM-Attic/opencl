@@ -18,10 +18,12 @@ void halfSpaceConstraints(float* const coefficients);
 __kernel void stSimplex(__global const float* const simplices,
 						__global float* const constraints,
 						__constant const int* const proj,
-						const int projRows)
+						const int projRows,
+						const int numSimplices)
 {
 	const int idx = get_global_id(0);
-	if (idx < SIMPLICES) {
+	//if (idx < SIMPLICES) { //temp
+	if (idx < numSimplices) {
 		const int s_base = (N+1)*(K+1)*idx;
 		const int ic_base = (K+1)*idx;
 		const int c_base = (N+1)*C_PER_SIMPLEX*idx;
@@ -168,6 +170,7 @@ bool hasStandardOrientation(const float* const coefficients) {
 }
 
 // Calculates the correct constraint for the given half-space
+// constraint = sum(Coefficient[i])/2
 void halfSpaceConstraints(float* const coefficients) {
 	float b = 0;
 	for (int i = 0; i < N; i++) {

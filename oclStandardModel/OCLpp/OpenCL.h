@@ -72,9 +72,9 @@ public:
 	inline cl_ulong getLocalMemSize() const { return localMemSize; }
 	inline cl_ulong getMaxMemAllocSize() const { return maxMemAllocSize; }
 
-	void getDeviceInfo(const cl_device_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize);
-	void getContextInfo(const cl_context_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize);
-	void getCommandQueueInfo(const cl_command_queue_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize);
+	void* getDeviceInfo(const cl_device_info paramName);
+	void* getContextInfo(const cl_context_info paramName);
+	void* getCommandQueueInfo(const cl_command_queue_info paramName);
 };
 
 }

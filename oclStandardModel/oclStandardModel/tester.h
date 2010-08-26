@@ -9,7 +9,8 @@ void echelonTest(float* simplices, int* ranks, int* indCols);
 void stSimplexCPU(const float* const simplices,
 				  float* const constraints,
 				  const int* const proj,
-				  const int projRows);
+				  const int projRows,
+				  const int numSimplices);
 //void hyperplaneTest(float* points, float* constraints, const int* basis, const int rank, const int* columns);
 //void fullTest(float* simplices, int* ranks, int* indCols, float* constraints, const int* basis);
 

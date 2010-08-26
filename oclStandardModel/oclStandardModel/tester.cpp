@@ -178,8 +178,9 @@ void halfSpaceConstraints(float* const coefficients) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-void echelonTest(float* simplices, int* ranks, int* indCols) {
-	for (int i = 0; i < SIMPLICES; i++) {
+void echelonTest(float* simplices, int* ranks, int* indCols, const int numSimplices) {
+	//for (int i = 0; i < SIMPLICES; i++) { //temp
+	for (int i = 0; i < numSimplices; i++) {
 		SMatrix e;
 		const int s_base = (N+1)*(K+1)*i;
 		//copy matrix
@@ -206,9 +207,11 @@ void echelonTest(float* simplices, int* ranks, int* indCols) {
 void stSimplexCPU(const float* const simplices,
 				  float* const constraints,
 				  const int* const proj,
-				  const int projRows)
+				  const int projRows,
+				  const int numSimplices)
 {
-	for (int idx = 0; idx < SIMPLICES; idx++) {
+	//for (int idx = 0; idx < SIMPLICES; idx++) { //temp
+	for (int idx = 0; idx < numSimplices; idx++) {
 		//cout << "simplice: " << idx << endl;
 		const int s_base = (N+1)*(K+1)*idx;
 		const int ic_base = (K+1)*idx;

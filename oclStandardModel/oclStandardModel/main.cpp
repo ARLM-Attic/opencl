@@ -22,6 +22,8 @@ bool equal(float value1, float value2) {
 
 int main(int argc, char **argv) {
 	OpenCL cl;
+	//K = number of points
+	//N = dimensionality
 
 	// Projections matrix
 	cout << "Allocating projections matrix..." << endl;
@@ -29,13 +31,84 @@ int main(int argc, char **argv) {
 	const int _m_ = (N < K+1)?(N):(K+1);
 	int* nckv = nchoosekVector(N, _m_, &nckRows);
 	const int nck_size = (N+2)*nckRows*sizeof(int);
-	//cl_mem nck_d = cl.createBuffer(nck_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nckv);
 	Buffer* nck_d = cl.createBuffer(nck_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nckv);
 
-	// Constraints matrix
-	cout << "Allocating constraints matrix..." << endl;
-	const int c_size = (N+1)*CONSTRAINTS;
-	float* constraints = new float[c_size];
+
+	/*************************************************************************************************************/
+	FILE* splxFile = fopen("simplices_in.txt", "r");
+	int SIMPLICES;
+	int s_size;
+	float* simplices;
+	int c_size;
+	float* constraints;
+
+	if(splxFile == NULL) {
+		SIMPLICES = 1;//_SIMPLICES;
+
+		// Constraints matrix
+		cout << "Allocating constraints matrix..." << endl;
+		c_size = (N+1)*CONSTRAINTS;
+
+		// Simplices matrix
+		cout << "Allocating simplices matrix..." << endl;
+		/*	x1  y1  z1  ...
+		S1	x2  y2  z2  ...
+			xN  yN  zN  ...
+			x1  y1  z1  ...
+		S2	x2  y2  z2  ...
+			xN  yN  zN  ...
+		*/
+		s_size = (N+1)*(K+1)*SIMPLICES;
+		simplices = new float[s_size];
+
+		cout << "Filling the matrix - random" << endl;
+		//Fill the matrix randomly
+		srand(time(0));
+		for (int i = 0; i < s_size; i++) {
+			int d = rand();
+			simplices[i] = (float)(rand()%1024);
+			if (i%((N+1)*(K+1))>=(N*(K+1)))
+				simplices[i] = 1;
+		}
+	}
+	else {
+		fscanf(splxFile, "%d", &SIMPLICES);
+
+		// Constraints matrix
+		cout << "Allocating constraints matrix..." << endl;
+		c_size = (N+1)*CONSTRAINTS;
+
+		// Simplices matrix
+		cout << "Allocating simplices matrix..." << endl;
+		s_size = (N+1)*(K+1)*SIMPLICES;
+		simplices = new float[s_size];
+
+		cout << "Filling the matrix - reading from file" << endl;
+		//Read the file
+		//Simplex i, point j, coordinate k
+		for (int s=0; s<SIMPLICES; s++) {
+			for(int dim=0; dim<N; dim++) {
+				for(int p=0; p<K+1; p++) {
+					fscanf(splxFile, "%f ", &simplices[s*(N+1)*(K+1) + dim*(K+1) + p]);
+					//homogenous coordinates
+					simplices[s*(N+1)*(K+1) + N*(K+1) + p] = 1;
+				}
+			}
+		}
+/*
+		for (int i=0; i<SIMPLICES; i++) {
+			for(int k=0; k<N; k++) {
+				for(int j=0; j<K+1; j++) {
+					fscanf(splxFile, "%f ", &simplices[i*(K+1)*(N+1) + k*(K+1) + j]);
+					//homogenous coordinates
+					simplices[i*(K+1)*(N+1) + N*(K+1) + j] = 1;
+				}
+			}
+		}*/
+		fclose(splxFile);
+	}
+
+	constraints = new float[c_size];
 	// Initialize the constraints so that evaluation is always true (no constraint)
 	for (int c = 0; c < CONSTRAINTS*(N+1); c++) {
 		if ((c+1)%(N+2)!=0)
@@ -43,26 +116,10 @@ int main(int argc, char **argv) {
 		else
 			constraints[c] = -1.0f;
 	}
-	//cl_mem constraints_d =
-	//	cl.createBuffer(c_size*sizeof(float), CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, constraints);
+
 	Buffer* constraints_d =
-			cl.createBuffer(c_size*sizeof(float), CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, constraints);
-
-	// Simplices matrix
-	cout << "Allocating simplices matrix..." << endl;
-	const int s_size = (N+1)*(K+1)*SIMPLICES;
-	float* simplices = new float[s_size];
-
-	/*************************************************************************************************************/
-	// TODO: FILL THE MATRIX - rand by now
-	srand(time(0));
-	for (int i = 0; i < s_size; i++) {
-		int d = rand();
-		simplices[i] = (float)(rand()%1024);
-		if (i%((N+1)*(K+1))>=(N*(K+1)))
-			simplices[i] = 1;
-	}
-	//cl_mem simplices_d = cl.createBuffer(s_size*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, simplices);
+		cl.createBuffer(c_size*sizeof(float), CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, constraints);
+	
 	Buffer* simplices_d = cl.createBuffer(s_size*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, simplices);
 	/*************************************************************************************************************/
 
@@ -77,8 +134,8 @@ int main(int argc, char **argv) {
 
 	cout << "Enqueueing arguments..." << endl;
 	Launcher stSimplex = program->createLauncher("stSimplex").global(global_ws).local(LOCAL_WORKSIZE);
-	//stSimplex.arg(simplices_d).arg(constraints_d).arg(nck_d).arg(nckRows);
-	stSimplex.arg(simplices_d->getMem()).arg(constraints_d->getMem()).arg(nck_d->getMem()).arg(nckRows);
+	
+	stSimplex.arg(simplices_d->getMem()).arg(constraints_d->getMem()).arg(nck_d->getMem()).arg(nckRows).arg(SIMPLICES);
 	cout << "Launching kernel..." << endl;
 
 	clock_t gpu_b = clock();
@@ -98,12 +155,23 @@ int main(int argc, char **argv) {
 	// PERFORMING TEST
 	cout << "Reading back..." << endl;
 	float* c_check = new float[c_size];
-	//cl.readBuffer(constraints_d, c_check, c_size*sizeof(float));
+	
+	// (N+1) * constraints
+	// CONSTRAINTS = (SIMPLICES*C_PER_SIMPLEX)
 	constraints_d->read(c_check, c_size*sizeof(float));
+	for (int i=0; i<SIMPLICES; i++) {
+		for(int j=0; j<C_PER_SIMPLEX; j++) {
+			for(int k=0; k<N; k++) {
+				printf("%f ", c_check[i*C_PER_SIMPLEX*(N+1) + j*(N+1) + k]);
+			}
+			printf("%f\n", c_check[i*C_PER_SIMPLEX*(N+1) + j*(N+1) + N]);
+		}
+	}
+
 	cout << "Performing computation on CPU" << endl;
 	
 	clock_t cpu_b = clock();
-	stSimplexCPU(simplices, constraints, nckv, nckRows);
+	stSimplexCPU(simplices, constraints, nckv, nckRows, SIMPLICES);
 	clock_t cpu_a = clock();
 
 	const int cpu_d = cpu_a - cpu_b;

@@ -80,11 +80,23 @@ void Buffer::copyToImage3D(Image2D& dst, const size_t size[3], const size_t srcO
 	}
 }
 
-void Buffer::getMemInfo(const cl_mem_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize) {
+void* Buffer::getMemInfo(const cl_mem_info paramName) {
 	cl_int err = 0;
-	err = clGetMemObjectInfo (mem, paramName, paramValueSize, paramValue, retSize);
+	size_t size;
+	err = clGetMemObjectInfo (mem, paramName, 0, NULL, &size);
 	if(err != CL_SUCCESS) {
 		cout << "Error getting Buffer info: " << errorMessage(err) << endl;
 		exit(err);
 	}
+
+	if(size > 0) {
+		void* info = malloc(size);
+		err = clGetMemObjectInfo (mem, paramName, size, info, &size);
+		if(err != CL_SUCCESS) {
+			cout << "Error getting Buffer info: " << errorMessage(err) << endl;
+			exit(err);
+		}
+		return info;
+	}
+	else return NULL;
 }

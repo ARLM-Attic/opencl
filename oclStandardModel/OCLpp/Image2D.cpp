@@ -45,11 +45,23 @@ void Image2D::copyToBuffer(Buffer& dst, const size_t size[2], const size_t srcOf
 	}
 }
 
-void Image2D::getInfo(const cl_image_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize) {
+void* Image2D::getInfo(const cl_image_info paramName) {
 	cl_int err = 0;
-	err = clGetImageInfo (mem, paramName, paramValueSize, paramValue, retSize);
+	size_t size;
+	err = clGetImageInfo (mem, paramName, 0, NULL, &size);
 	if (err != CL_SUCCESS) {
 		cout << "Error getting Image info: " << errorMessage(err) << endl;
 		exit(err);
 	}
+
+	if(size > 0) {
+		void* info = malloc(size);
+		err = clGetImageInfo (mem, paramName, size, info, &size);
+		if (err != CL_SUCCESS) {
+			cout << "Error getting Image info: " << errorMessage(err) << endl;
+			exit(err);
+		}
+		return info;
+	}
+	else return NULL;
 }

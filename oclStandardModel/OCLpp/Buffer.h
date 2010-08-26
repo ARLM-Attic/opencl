@@ -29,7 +29,7 @@ public:
 	void copyToImage2D(Image2D& dst, const size_t size[2], const size_t srcOffset, const size_t dstOffset[2]);
 	void copyToImage3D(Image2D& dst, const size_t size[3], const size_t srcOffset, const size_t dstOffset[3]);
 
-	void getMemInfo(const cl_mem_info paramName, const size_t paramValueSize, void* paramValue, size_t* retSize);
+	void* getMemInfo(const cl_mem_info paramName);
 };
 
 

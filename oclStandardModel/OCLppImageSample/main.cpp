@@ -25,6 +25,7 @@ void initPixelBuffer();
 #define LOCAL_SIZE_X 16
 #define LOCAL_SIZE_Y 16
 
+unsigned int iGLUTWindowHandle;
 float viewRotation[3];
 float viewTranslation[3] = {0.0, 0.0, -4.0f};
 float invViewMatrix[12];
@@ -43,11 +44,11 @@ void initCLVolume(unsigned char *h_volume);
 // OpenGL functionality
 void InitGL(int argc, const char** argv);
 void DisplayGL();
+void KeyboardGL(unsigned char key, int x, int y);
 void Reshape(int w, int h);
 void motion(int x, int y);
 void mouse(int button, int state, int x, int y);
 void Idle(void);
-//void KeyboardGL(unsigned char key, int x, int y);
 
 ocl::Launcher kernelLauncher;
 char* cPathAndName = NULL;          // var for full paths to data, src, etc.
@@ -59,6 +60,7 @@ int buttonState = 0;
 void Cleanup(int iExitCode);
 void (*pCleanup)(int) = &Cleanup;
 
+bool imgSupport;
 
 int main(int argc, const char** argv)
 {
@@ -70,6 +72,11 @@ int main(int argc, const char** argv)
 	prog->build(buildOpts);
 
 	kernelLauncher = prog->createLauncher("d_render");
+
+	void* info = cl.getDeviceInfo(CL_DEVICE_IMAGE_SUPPORT);
+	if(info != NULL) {
+		imgSupport = *(bool*) info;
+	}
 
 	InitGL(argc, argv);
 
@@ -84,7 +91,6 @@ int main(int argc, const char** argv)
 	return 0;
 }
 
-unsigned int iGLUTWindowHandle;
 void InitGL(int argc, const char **argv)
 {
 	// initialize GLUT 
@@ -97,6 +103,7 @@ void InitGL(int argc, const char **argv)
 
 	// register glut callbacks
 	glutDisplayFunc(DisplayGL);
+	glutKeyboardFunc(KeyboardGL);
 	glutIdleFunc(Idle);
 	glutMouseFunc(mouse);
 	glutMotionFunc(motion);
@@ -115,35 +122,36 @@ void initCLVolume(unsigned char *h_volume)
 {
 	ciErrNum = CL_SUCCESS;
 
-	// create 3D array and copy data to device
-	cl_image_format volume_format;
-	volume_format.image_channel_order = CL_R;
-	volume_format.image_channel_data_type = CL_UNORM_INT8;
+	if (imgSupport) {
+		// create 3D array and copy data to device
+		cl_image_format volume_format;
+		volume_format.image_channel_order = CL_R;
+		volume_format.image_channel_data_type = CL_UNORM_INT8;
 
-	
-	d_volumeArray = cl.createImage3D(volumeSize[0], volumeSize[1], volumeSize[2], volumeSize[0], 
-					volumeSize[0]*volumeSize[1], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &volume_format, h_volume);
+		d_volumeArray = cl.createImage3D(volumeSize[0], volumeSize[1], volumeSize[2], volumeSize[0], 
+						volumeSize[0]*volumeSize[1], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &volume_format, h_volume);
 
-	// create transfer function texture
-	float transferFunc[] = {
-		0.0, 0.0, 0.0, 0.0, 
-		1.0, 0.0, 0.0, 1.0, 
-		1.0, 0.5, 0.0, 1.0, 
-		1.0, 1.0, 0.0, 1.0, 
-		0.0, 1.0, 0.0, 1.0, 
-		0.0, 1.0, 1.0, 1.0, 
-		0.0, 0.0, 1.0, 1.0, 
-		1.0, 0.0, 1.0, 1.0, 
-		0.0, 0.0, 0.0, 0.0, 
-	};
+		// create transfer function texture
+		float transferFunc[] = {
+			0.0, 0.0, 0.0, 0.0, 
+			1.0, 0.0, 0.0, 1.0, 
+			1.0, 0.5, 0.0, 1.0, 
+			1.0, 1.0, 0.0, 1.0, 
+			0.0, 1.0, 0.0, 1.0, 
+			0.0, 1.0, 1.0, 1.0, 
+			0.0, 0.0, 1.0, 1.0, 
+			1.0, 0.0, 1.0, 1.0, 
+			0.0, 0.0, 0.0, 0.0, 
+		};
 
-	cl_image_format transferFunc_format;
-	transferFunc_format.image_channel_order = CL_RGBA;
-	transferFunc_format.image_channel_data_type = CL_FLOAT;
+		cl_image_format transferFunc_format;
+		transferFunc_format.image_channel_order = CL_RGBA;
+		transferFunc_format.image_channel_data_type = CL_FLOAT;
 
-	d_transferFuncArray = cl.createImage2D(9,1, sizeof(float) * 9 * 4, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &transferFunc_format, transferFunc);
+		d_transferFuncArray = cl.createImage2D(9,1, sizeof(float) * 9 * 4, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &transferFunc_format, transferFunc);
 
-	kernelLauncher.arg(8, d_volumeArray->getMem()).arg(9, d_transferFuncArray->getMem());
+		kernelLauncher.arg(8, d_volumeArray->getMem()).arg(9, d_transferFuncArray->getMem());
+	}
 
 	// init invViewMatrix
 	d_invViewMatrix = cl.createBuffer(12 * sizeof(float), CL_MEM_READ_ONLY);
@@ -235,6 +243,58 @@ void DisplayGL()
 
     // flip backbuffer to screen
     glutSwapBuffers();
+    glutPostRedisplay();
+}
+
+// Keyboard event handler callback
+//*****************************************************************************
+void KeyboardGL(unsigned char key, int /*x*/, int /*y*/)
+{
+    switch(key) 
+    {
+        case '=':
+            density += 0.01;
+            break;
+        case '-':
+            density -= 0.01;
+            break;
+        case '+':
+            density += 0.1;
+            break;
+        case '_':
+            density -= 0.1;
+            break;
+
+        case ']':
+            brightness += 0.1;
+            break;
+        case '[':
+            brightness -= 0.1;
+            break;
+
+        case ';':
+            transferOffset += 0.01;
+            break;
+        case '\'':
+            transferOffset -= 0.01;
+            break;
+
+        case '.':
+            transferScale += 0.01;
+            break;
+        case ',':
+            transferScale -= 0.01;
+            break;
+        case '\033': // escape quits
+        case '\015': // Enter quits    
+        case 'Q':    // Q quits
+        case 'q':    // q (or escape) quits
+            // Cleanup up and quit
+            Cleanup(EXIT_SUCCESS);
+            break;
+        default:
+            break;
+    }
     glutPostRedisplay();
 }
 
