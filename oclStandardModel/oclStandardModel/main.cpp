@@ -51,12 +51,14 @@ int main(int argc, char **argv) {
 
 		// Simplices matrix
 		cout << "Allocating simplices matrix..." << endl;
-		/*	x1  y1  z1  ...
-		S1	x2  y2  z2  ...
-			xN  yN  zN  ...
-			x1  y1  z1  ...
-		S2	x2  y2  z2  ...
-			xN  yN  zN  ...
+		/*	p1  p2  p3  pN
+			x1  x2  x3  ...
+		S1	y1  y2  y3  ...
+			z1  z2  z3  ...
+
+			x1  x2  x3  ...
+		S2	y1  y2  y3  ...
+			z1  z2  z3  ...
 		*/
 		s_size = (N+1)*(K+1)*SIMPLICES;
 		simplices = new float[s_size];
@@ -85,7 +87,7 @@ int main(int argc, char **argv) {
 
 		cout << "Filling the matrix - reading from file" << endl;
 		//Read the file
-		//Simplex i, point j, coordinate k
+		//Simplex s, point p, coordinate dim
 		for (int s=0; s<SIMPLICES; s++) {
 			for(int dim=0; dim<N; dim++) {
 				for(int p=0; p<K+1; p++) {
@@ -159,13 +161,14 @@ int main(int argc, char **argv) {
 	// (N+1) * constraints
 	// CONSTRAINTS = (SIMPLICES*C_PER_SIMPLEX)
 	constraints_d->read(c_check, c_size*sizeof(float));
-	for (int i=0; i<SIMPLICES; i++) {
-		for(int j=0; j<C_PER_SIMPLEX; j++) {
-			for(int k=0; k<N; k++) {
-				printf("%f ", c_check[i*C_PER_SIMPLEX*(N+1) + j*(N+1) + k]);
+	for (int s=0; s<SIMPLICES; s++) {
+		for(int c=0; c<C_PER_SIMPLEX; c++) {
+			for(int dim=0; dim<N+1; dim++) {
+				printf("%f ", c_check[s*(C_PER_SIMPLEX+1)*(N+1) + c*(N+1) + dim]);
 			}
-			printf("%f\n", c_check[i*C_PER_SIMPLEX*(N+1) + j*(N+1) + N]);
+			printf("\n");
 		}
+		printf("\n");
 	}
 
 	cout << "Performing computation on CPU" << endl;
@@ -191,6 +194,7 @@ int main(int argc, char **argv) {
 
 	cout << dif << " different values out of " << CONSTRAINTS << endl;
 	cout << 100*float(dif)/(float)CONSTRAINTS << "% wrong" << endl;
+	getchar();
 }
 
 
