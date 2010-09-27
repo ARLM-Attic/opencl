@@ -274,7 +274,9 @@ void stSimplexCPU(const float* const simplices,
 				  float* const constraints,
 				  const int* const proj,
 				  const int projRows,
-				  const int numSimplices)
+				  const int numSimplices,
+				  int* const volume,
+				  const int volumeW, const int volumeH, const int volumeD)
 {
 	//for (int idx = 0; idx < SIMPLICES; idx++) { //temp
 	for (int idx = 0; idx < numSimplices; idx++) {
@@ -291,7 +293,8 @@ void stSimplexCPU(const float* const simplices,
 		for (int i = 0; i < (K+1)*(N+1); i++) {
 			const int ln = i/(K+1);
 			const int cl = i%(K+1);
-			points[ln][cl] = simplices[s_base+i];
+			points[ln][cl] = simplices[idx*(K+1) + ln*numSimplices*(K+1) + cl];
+			//points[ln][cl] = simplices[s_base+i];
 		}
 
 		//cout << "c_base " << c_base << endl;
@@ -415,8 +418,48 @@ void stSimplexCPU(const float* const simplices,
 				}
 			}
 		}
+
+		float minCoord[] = {9999, 9999, 9999};
+		float maxCoord[] = {-9999, -9999, -9999};
+		for(int coord=0; coord<N; coord++)
+		{
+			for(int p=0; p<N; p++)
+			{
+				minCoord[coord] = min(minCoord[coord], points[coord][p]);
+				maxCoord[coord] = max(maxCoord[coord], points[coord][p]);
+			}
+			// get the floor of the min value and the ceil of the max
+			minCoord[coord] = (int) minCoord[coord];
+			maxCoord[coord] = (int) (maxCoord[coord] + 1);
+		}
+
+		for(int vX=(int)minCoord[0]; vX<=(int)maxCoord[0]; vX++)
+			for(int vY=(int)minCoord[1]; vY<=(int)maxCoord[1]; vY++)
+				for(int vZ=(int)minCoord[2]; vZ<=(int)maxCoord[2]; vZ++)
+				{
+					float discreteP[] = {vX, vY, vZ};
+
+					bool raster = true;
+					for(int i=0; i < c_counter/(N+1); i++)
+					{
+						float sum = 0;
+						for(int coord=0; coord<N; coord++) {
+							sum += discreteP[coord] * constraints[c_base + i*(N+1) + coord];
+						}
+
+						if(!(sum <= -constraints[c_base + i*(N+1) + N])) {
+							raster = false;
+							break;
+						}
+					}
+
+					if(raster && vX<volumeW && vY<volumeH && vZ<volumeD && vX>=0 && vY>=0 && vZ>=0) {
+						volume[vX*volumeH*volumeD + vY*volumeD + vZ] = 1;
+					}
+				}
+		//*/
 	}
-	printf("\n");
+	//printf("\n");
 }
 //void hyperplaneTest(float* points, float* constraints, const int* base, const int rank, const int* columns) {
 //	for (int i = 0; i < SIMPLICES; i++) {

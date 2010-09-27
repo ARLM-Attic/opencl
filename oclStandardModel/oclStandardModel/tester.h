@@ -11,7 +11,9 @@ void stSimplexCPU(const float* const simplices,
 				  float* const constraints,
 				  const int* const proj,
 				  const int projRows,
-				  const int numSimplices);
+				  const int numSimplices,
+				  int* const volume,
+				  const int volumeW, const int volumeH, const int volumeD);
 void makeStandardOriented(float* const coefficients);
 void triangleFaceOrientation(const SMatrix points, const int rank,
 							 const int* const columns, float* const coefficients);

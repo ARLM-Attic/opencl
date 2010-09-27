@@ -76,6 +76,7 @@ __kernel void stSimplex(__global const float* const simplices,
 				
 				// COMMIT CONSTRAINTS (inside the function above)
 				// UPDATE CT_BASE
+				commitConstraint(&constraints[ct_base], ct);
 			}
 			else {
 				// Find non-zero row
