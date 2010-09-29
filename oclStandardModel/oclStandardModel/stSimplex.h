@@ -8,7 +8,7 @@
 #define CONSTRAINTS (SIMPLICES*C_PER_SIMPLEX)
 #define TOLERANCE 1.0e-5f
 
-#define LOCAL_WORKSIZE 128	// 64 registers per thread with 16k registers per block
+#define LOCAL_WORKSIZE 16//128	// 64 registers per thread with 16k registers per block
 
 typedef float constraint[N+1];
 typedef float SMatrix[N+1][K+1];

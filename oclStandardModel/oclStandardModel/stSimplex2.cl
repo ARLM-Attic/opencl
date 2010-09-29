@@ -173,12 +173,12 @@ __kernel void stSimplex(__global const float* const simplices,
 			maxCoord[coord] = (int) (maxCoord[coord] + 1);
 		}
 
-//		for(int vX=(int)minCoord[0]; vX<=(int)maxCoord[0]; vX++)
-//			for(int vY=(int)minCoord[1]; vY<=(int)maxCoord[1]; vY++)
-//				for(int vZ=(int)minCoord[2]; vZ<=(int)maxCoord[2]; vZ++)
-		for(int vX=0; vX<=20; vX++)
-			for(int vY=0; vY<=20; vY++)
-				for(int vZ=0; vZ<=50; vZ++)
+		for(int vX=(int)minCoord[0]; vX<=(int)maxCoord[0]; vX++)
+			for(int vY=(int)minCoord[1]; vY<=(int)maxCoord[1]; vY++)
+				for(int vZ=(int)minCoord[2]; vZ<=(int)maxCoord[2]; vZ++)
+//		for(int vX=0; vX<=20; vX++)
+//			for(int vY=0; vY<=20; vY++)
+//				for(int vZ=0; vZ<=50; vZ++)
 				{
 					/*float discreteP[] = {vX, vY, vZ};
 
