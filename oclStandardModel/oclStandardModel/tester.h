@@ -4,6 +4,7 @@
 #include "stSimplex.h"
 #include <cmath>
 #include <limits>
+#include <cstdlib>
 
 void printMatrix(const SMatrix m, int lines=0, int cols=0);
 void echelonTest(float* simplices, int* ranks, int* indCols);

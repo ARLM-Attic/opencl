@@ -1,5 +1,6 @@
 #include "LinearAlgebra.h"
 
+/*
 bool isZero(float value, float tolerance) {
 	return (abs(value) < abs(tolerance));
 }
@@ -120,3 +121,4 @@ int pivot(Matrix m, const int row, const float tolerance) {
 	}
 	return 0;
 }
+*/

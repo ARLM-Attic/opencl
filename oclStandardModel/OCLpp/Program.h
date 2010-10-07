@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <cstdlib>
 
 #include "Launcher.h"
 #include "misc.h"

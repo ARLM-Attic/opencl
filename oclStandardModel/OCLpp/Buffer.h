@@ -3,6 +3,7 @@
 
 #include <CL/opencl.h>
 #include <iostream>
+#include <cstdlib>
 
 #include "misc.h"
 

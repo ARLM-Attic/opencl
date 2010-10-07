@@ -2,6 +2,7 @@
 #define __OCLPP_LAUNCHER_H
 
 #include <iostream>
+#include <cstdlib>
 #include <CL/cl.h>
 
 #include "definitions.h"

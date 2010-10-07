@@ -91,6 +91,7 @@ int main(int argc, const char **argv) {
 	Buffer* nck_d = cl.createBuffer(nck_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nckv);
 
 
+
 	/*************************************************************************************************************/
 	int SIMPLICES;
 	int s_size;
@@ -171,7 +172,6 @@ int main(int argc, const char **argv) {
 
 	constraints_d =
 		cl.createBuffer(c_size*sizeof(float), CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, constraints);
-	
 	simplices_d = cl.createBuffer(s_size*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, simplices);
 	/*************************************************************************************************************/
 
@@ -245,6 +245,17 @@ int main(int argc, const char **argv) {
 
 	volume_d->read(volume, GRID_SIZE_X*GRID_SIZE_Y*GRID_SIZE_Z*sizeof(int));
 
+	FILE* volOut = fopen("volume_gpu.txt", "w");
+	for(int y=0; y<GRID_SIZE_Y; y++) {
+		for(int z=0; z<GRID_SIZE_Z; z++) {
+			for(int x=0; x<GRID_SIZE_X; x++)
+				fprintf(volOut, "%d ", volume[x][y][z]);
+			fprintf(volOut, "\n");
+		}
+		fprintf(volOut, "\n");
+	}
+	fclose(volOut);
+
 
 	cout << "Performing computation on CPU" << endl;
 	
@@ -253,7 +264,7 @@ int main(int argc, const char **argv) {
 	clock_t cpu_a = clock();
 
 
-	FILE* volOut = fopen("volume.txt", "w");
+	volOut = fopen("volume.txt", "w");
 	for(int y=0; y<GRID_SIZE_Y; y++) {
 		for(int z=0; z<GRID_SIZE_Z; z++) {
 			for(int x=0; x<GRID_SIZE_X; x++)

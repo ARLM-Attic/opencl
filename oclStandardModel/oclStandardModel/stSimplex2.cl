@@ -176,11 +176,8 @@ __kernel void stSimplex(__global const float* const simplices,
 		for(int vX=(int)minCoord[0]; vX<=(int)maxCoord[0]; vX++)
 			for(int vY=(int)minCoord[1]; vY<=(int)maxCoord[1]; vY++)
 				for(int vZ=(int)minCoord[2]; vZ<=(int)maxCoord[2]; vZ++)
-//		for(int vX=0; vX<=20; vX++)
-//			for(int vY=0; vY<=20; vY++)
-//				for(int vZ=0; vZ<=50; vZ++)
 				{
-					/*float discreteP[] = {vX, vY, vZ};
+					float discreteP[] = {vX, vY, vZ};
 
 					bool raster = true;
 					for(int i=0; i < c_counter/(N+1); i++)
@@ -198,64 +195,9 @@ __kernel void stSimplex(__global const float* const simplices,
 					
 					if(raster && vX<volumeW && vY<volumeH && vZ<volumeD && vX>=0 && vY>=0 && vZ>=0) {
 						volume[vX*volumeH*volumeD + vY*volumeD + vZ] = 1;
-					}*/
+					}
 				}
 //*/
-
-		/*
-		float minCoord[] = {9999, 9999, 9999};
-		float maxCoord[] = {-9999, -9999, -9999};
-		for(int coord=0; coord<N; coord++)
-		{
-			for(int p=0; p<N; p++)
-			{
-				minCoord[coord] = min(minCoord[coord], points[coord][p]);
-				maxCoord[coord] = max(maxCoord[coord], points[coord][p]);
-			}
-		}
-
-		/*
-		if(idx < numSimplices-718) {
-			constraints[20] = points[0][0];
-			constraints[21] = points[1][0];
-			constraints[22] = points[2][0];
-			constraints[23] = points[3][0];
-
-			constraints[0] = 123.456;
-			constraints[1] = minCoord[0];
-			constraints[2] = minCoord[1];
-			constraints[3] = minCoord[2];
-			constraints[4] = maxCoord[0];
-			constraints[5] = maxCoord[1];
-			constraints[6] = maxCoord[2];
-			constraints[7] = 123.456;
-		//}
-
-		//*/
-		/*
-		for(int vX=(int)minCoord[0]; vX<=(int)maxCoord[0]; vX++)
-			for(int vY=(int)minCoord[1]; vY<=(int)maxCoord[1]; vY++)
-				for(int vZ=(int)minCoord[2]; vZ<=(int)maxCoord[2]; vZ++)
-				{
-					float discreteP[] = {vX, vY, vZ};
-
-					bool raster = true;
-					for(int i=0; i < c_counter/(N+1); i++)
-					{
-						float sum = 0;
-						for(int coord=0; coord<N; coord++)
-							sum += discreteP[coord] * constraints[c_base + i*(N+1) + coord];
-
-						if(!(sum <= -constraints[c_base + i*(N+1) + N])) {
-							raster = false;
-							break;
-						}
-					}
-
-					if(raster && vX<volumeW && vY<volumeH && vZ<volumeD && vX>=0 && vY>=0 && vZ>=0)
-						volume[vX*volumeH*volumeD + vY*volumeD + vZ] = 1;
-				}
-		//*/
 	}
 }
 
