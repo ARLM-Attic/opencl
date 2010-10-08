@@ -157,7 +157,7 @@ __kernel void stSimplex(__global const float* const simplices,
 			}
 		}
 
-		//*
+		/*
 		// Fill a volume:
 		float minCoord[] = {9999, 9999, 9999};
 		float maxCoord[] = {-9999, -9999, -9999};

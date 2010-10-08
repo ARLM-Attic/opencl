@@ -6,9 +6,11 @@
 #include <oclUtils.h>
 #include "OpenCL.h"
 
+#include "XForm.h"
+#include "GLCamera.h"
+
 #include "nchoosek.h"
 #include "stSimplex.h"
-
 #include "tester.h"
 
 using namespace ocl;
@@ -28,17 +30,17 @@ Buffer* simplices_d;
 #define GRID_SIZE_X 180
 #define GRID_SIZE_Y 180
 #define GRID_SIZE_Z 180
-int		volume[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
+int	volume[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
 Buffer*	volume_d;
 /*********************************************/
 /* GL *****************************************/
 cl_int ciErrNum;
 
 GLuint pbo = 0;                 // OpenGL pixel buffer object
+vector<float> points;
 
 unsigned int width = 512, height = 512;
 size_t gridSize[2] = {width, height};
-void initPixelBuffer();
 
 #define LOCAL_SIZE_X 16
 #define LOCAL_SIZE_Y 16
@@ -57,7 +59,7 @@ void initCLVolume(unsigned char *h_volume);
 int ox, oy;                         // mouse location vars
 int buttonState = 0;       
 
-
+void initDrawArray();
 void InitGL(int argc, const char** argv);
 void DisplayGL();
 void KeyboardGL(unsigned char key, int x, int y);
@@ -70,6 +72,12 @@ void Cleanup(int iExitCode);
 void (*pCleanup)(int) = &Cleanup;
 
 bool imgSupport;
+/*********************************************/
+xform thexform;
+xform global_xf;
+GLCamera camera;
+string xffilename;
+static unsigned buttonstate = 0;
 /*********************************************/
 
 float* loadDataset(const char* path, int& num_simplices);
@@ -90,7 +98,9 @@ int main(int argc, const char **argv) {
 	const int nck_size = (N+2)*nckRows*sizeof(int);
 	Buffer* nck_d = cl.createBuffer(nck_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nckv);
 
-
+	cout << "globalsize: " << cl.getGlobalMemSize() << endl;
+	cout << "localsize: " << cl.getLocalMemSize() << endl;
+	cout << "maxMemAllocSize: " << cl.getMaxMemAllocSize() << endl;
 
 	/*************************************************************************************************************/
 	int SIMPLICES;
@@ -112,7 +122,8 @@ int main(int argc, const char **argv) {
 
 		// Constraints matrix
 		cout << "Allocating constraints matrix..." << endl;
-		c_size = (N+1)*CONSTRAINTS;
+		c_size = (N+1)*CONSTRAINTS;#include "XForm.h"
+#include "GLCamera.h"
 
 		// Simplices matrix
 		cout << "Allocating simplices matrix..." << endl;
@@ -138,7 +149,8 @@ int main(int argc, const char **argv) {
 		c_size = (N+1)*CONSTRAINTS;
 
 		// Simplices matrix
-		cout << "Allocating simplices matrix..." << endl;
+		cout << "Allocating simplices matrix..." << endl;#include "XForm.h"
+#include "GLCamera.h"
 		s_size = (N+1)*(K+1)*SIMPLICES;
 		simplices = new float[s_size];
 
@@ -170,6 +182,9 @@ int main(int argc, const char **argv) {
 			constraints[c] = -1.0f;
 	}
 
+	cout << "constraints size: " << c_size*sizeof(float) << endl;
+	cout << "simplices size: " << s_size*sizeof(float) << endl;
+	cout << "volume size: " << 180*180*180 << endl;
 	constraints_d =
 		cl.createBuffer(c_size*sizeof(float), CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, constraints);
 	simplices_d = cl.createBuffer(s_size*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, simplices);
@@ -257,8 +272,79 @@ int main(int argc, const char **argv) {
 	fclose(volOut);
 
 
+	clock_t fv_b = clock();
+	for(int idx = 0; idx < SIMPLICES; idx++) {
+		const int c_base = (N+1)*C_PER_SIMPLEX*idx;
+
+		int c_counter = 0;
+
+		SMatrix points;
+		// Load matrix into registers
+		for (int i = 0; i < (K+1)*(N+1); i++) {
+			const int ln = i/(K+1);
+			const int cl = i%(K+1);
+			points[ln][cl] = simplices[idx*(K+1) + ln*SIMPLICES*(K+1) + cl];
+		}
+
+		float minCoord[] = {9999, 9999, 9999};
+		float maxCoord[] = {-9999, -9999, -9999};
+		for(int coord=0; coord<N; coord++)
+		{
+			for(int p=0; p<N; p++)
+			{
+				minCoord[coord] = min(minCoord[coord], points[coord][p]);
+				maxCoord[coord] = max(maxCoord[coord], points[coord][p]);
+			}
+			// get the floor of the min value and the ceil of the max
+			minCoord[coord] = (int) minCoord[coord];
+			maxCoord[coord] = (int) (maxCoord[coord] + 1);
+		}
+
+		for(int vX=(int)minCoord[0]; vX<=(int)maxCoord[0]; vX++)
+			for(int vY=(int)minCoord[1]; vY<=(int)maxCoord[1]; vY++)
+				for(int vZ=(int)minCoord[2]; vZ<=(int)maxCoord[2]; vZ++)
+				{
+					float discreteP[] = {vX, vY, vZ};
+
+					bool raster = true;
+					for(int i=0; i < c_counter/(N+1); i++)
+					{
+						float soma = 0;
+						for(int coord=0; coord<N; coord++) {
+							soma += discreteP[coord] * c_check[c_base + i*(N+1) + coord];
+						}
+
+						if(!(soma <= -c_check[c_base + i*(N+1) + N])) {
+							raster = false;
+							break;
+						}
+					}
+
+					if(raster && vX<GRID_SIZE_X && vY<GRID_SIZE_Y && vZ<GRID_SIZE_Z && vX>=0 && vY>=0 && vZ>=0) {
+						volume[vX][vY][vZ] = 1;
+					}
+				}
+	}
+	clock_t fv_a = clock();
+
+	const int fv_d = fv_a - fv_b;
+	cout << "Volume fill time (ms): " << 1000*fv_d/(float)CLOCKS_PER_SEC << endl;
+
+
+	volOut = fopen("volume_misto.txt", "w");
+	for(int y=0; y<GRID_SIZE_Y; y++) {
+		for(int z=0; z<GRID_SIZE_Z; z++) {
+			for(int x=0; x<GRID_SIZE_X; x++)
+				fprintf(volOut, "%d ", volume[x][y][z]);
+			fprintf(volOut, "\n");
+		}
+		fprintf(volOut, "\n");
+	}
+	fclose(volOut);
+
+
 	cout << "Performing computation on CPU" << endl;
-	
+							
 	clock_t cpu_b = clock();
 	stSimplexCPU(simplices, constraints, nckv, nckRows, SIMPLICES, (int*)volume, GRID_SIZE_X, GRID_SIZE_Y, GRID_SIZE_Z);
 	clock_t cpu_a = clock();
@@ -321,7 +407,7 @@ int main(int argc, const char **argv) {
 	*/
 
 	InitGL(argc, argv);
-	initPixelBuffer();
+	initDrawArray();
 	glutMainLoop();
 }
 
@@ -440,89 +526,171 @@ void InitGL(int argc, const char **argv)
 	glewInit();
 }
 
-// Initialize GL
-//*****************************************************************************
-void initPixelBuffer()
+void initDrawArray()
 {
-     ciErrNum = CL_SUCCESS;
+	double cubeSize = 2.0/((double)GRID_SIZE_X);
+	for(int y=0; y<GRID_SIZE_Y; y++)
+			for(int z=0; z<GRID_SIZE_Z; z++)
+				for(int x=0; x<GRID_SIZE_X; x++)
+					if(volume[x][y][z])
+					{
+						/*
+						float p[2][2][2][3];
+						
+						p[0][0][0][0] = x*cubeSize;
+						p[0][0][0][1] = y*cubeSize;
+						p[0][0][0][2] = z*cubeSize;
 
-    if (pbo) {
-        // delete old buffer
-        //clReleaseMemObject(pbo_cl);
-        glDeleteBuffersARB(1, &pbo);
-    }
+						p[1][0][0][0] = (x+1)*cubeSize;
+						p[1][0][0][1] = y*cubeSize;
+						p[1][0][0][2] = z*cubeSize;
 
-    // create pixel buffer object for display
-    glGenBuffersARB(1, &pbo);
-	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, pbo);
-	glBufferDataARB(GL_PIXEL_UNPACK_BUFFER_ARB, width * height * sizeof(GLubyte) * 4, 0, GL_STREAM_DRAW_ARB);
-	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+						p[1][1][0][0] = (x+1)*cubeSize;
+						p[1][1][0][1] = (y+1)*cubeSize;
+						p[1][1][0][2] = z*cubeSize;
 
-	pbo_cl = cl.createBuffer(width * height * sizeof(GLubyte) * 4, CL_MEM_WRITE_ONLY);
+						p[0][1][0][0] = x*cubeSize;
+						p[0][1][0][1] = (y+1)*cubeSize;
+						p[0][1][0][2] = z*cubeSize;
 
-    // calculate new grid size
-	gridSize[0] = shrRoundUp(LOCAL_SIZE_X,width);
-	gridSize[1] = shrRoundUp(LOCAL_SIZE_Y,height);
+						p[0][0][1][0] = x*cubeSize;
+						p[0][0][1][1] = y*cubeSize;
+						p[0][0][1][2] = (z+1)*cubeSize;
 
-	stRender.arg(0, pbo_cl->getMem()).arg(1, width).arg(2, height).arg(3, volume_d->getMem());
-	stRender.arg(4, GRID_SIZE_X).arg(5, GRID_SIZE_Y).arg(6, GRID_SIZE_Z);
+						p[1][0][1][0] = (x+1)*cubeSize;
+						p[1][0][1][1] = y*cubeSize;
+						p[1][0][1][2] = (z+1)*cubeSize;
+
+						p[1][1][1][0] = (x+1)*cubeSize;
+						p[1][1][1][1] = (y+1)*cubeSize;
+						p[1][1][1][2] = (z+1)*cubeSize;
+
+						p[0][1][1][0] = x*cubeSize;
+						p[0][1][1][1] = (y+1)*cubeSize;
+						p[0][1][1][2] = (z+1)*cubeSize;
+
+						// front face
+						points.push_back(p[0][0][0][0]);points.push_back(p[0][0][0][1]);points.push_back(p[0][0][0][2]);
+						points.push_back(p[1][0][0][0]);points.push_back(p[1][0][0][1]);points.push_back(p[1][0][0][2]);
+						points.push_back(p[1][1][0][0]);points.push_back(p[1][1][0][1]);points.push_back(p[1][1][0][2]);
+						points.push_back(p[0][1][0][0]);points.push_back(p[0][1][0][1]);points.push_back(p[0][1][0][2]);
+
+						// back face
+						points.push_back(p[0][0][1][0]);points.push_back(p[0][0][1][1]);points.push_back(p[0][0][1][2]);
+						points.push_back(p[0][1][1][0]);points.push_back(p[0][1][1][1]);points.push_back(p[0][1][1][2]);
+						points.push_back(p[1][1][1][0]);points.push_back(p[1][1][1][1]);points.push_back(p[1][1][1][2]);
+						points.push_back(p[1][0][1][0]);points.push_back(p[1][0][1][1]);points.push_back(p[1][0][1][2]);
+
+						// left face
+						points.push_back(p[0][0][0][0]);points.push_back(p[0][0][0][1]);points.push_back(p[0][0][0][2]);
+						points.push_back(p[0][1][0][0]);points.push_back(p[0][1][0][1]);points.push_back(p[0][1][0][2]);
+						points.push_back(p[0][1][1][0]);points.push_back(p[0][1][1][1]);points.push_back(p[0][1][1][2]);
+						points.push_back(p[0][0][1][0]);points.push_back(p[0][0][1][1]);points.push_back(p[0][0][1][2]);
+
+						// right face
+						points.push_back(p[1][0][0][0]);points.push_back(p[1][0][0][1]);points.push_back(p[1][0][0][2]);
+						points.push_back(p[1][0][1][0]);points.push_back(p[1][0][1][1]);points.push_back(p[1][0][1][2]);
+						points.push_back(p[1][1][1][0]);points.push_back(p[1][1][1][1]);points.push_back(p[1][1][1][2]);
+						points.push_back(p[1][1][0][0]);points.push_back(p[1][1][0][1]);points.push_back(p[1][1][0][2]);
+
+						// bottom face
+						points.push_back(p[0][0][0][0]);points.push_back(p[0][0][0][1]);points.push_back(p[0][0][0][2]);
+						points.push_back(p[1][0][0][0]);points.push_back(p[1][0][0][1]);points.push_back(p[1][0][0][2]);
+						points.push_back(p[1][0][1][0]);points.push_back(p[1][0][1][1]);points.push_back(p[1][0][1][2]);
+						points.push_back(p[0][0][1][0]);points.push_back(p[0][0][1][1]);points.push_back(p[0][0][1][2]);
+
+						// top face
+						points.push_back(p[0][1][0][0]);points.push_back(p[0][1][0][1]);points.push_back(p[0][1][0][2]);
+						points.push_back(p[0][1][1][0]);points.push_back(p[0][1][1][1]);points.push_back(p[0][1][1][2]);
+						points.push_back(p[1][1][1][0]);points.push_back(p[1][1][1][1]);points.push_back(p[1][1][1][2]);
+						points.push_back(p[1][1][0][0]);points.push_back(p[1][1][0][1]);points.push_back(p[1][1][0][2]);
+						*/
+						points.push_back((x+0.5)*cubeSize);
+						points.push_back((z+0.5)*cubeSize);
+						points.push_back((y+0.5)*cubeSize);
+					}
 }
+
 
 // render image using OpenCL
 //*****************************************************************************
 void render()
 {
-    ciErrNum = CL_SUCCESS;
+	glClearColor(0, 0, 0, 1);
+	glClear(GL_COLOR_BUFFER_BIT);
 
-    // execute OpenCL kernel, writing results to PBO
-    size_t localSize[] = {LOCAL_SIZE_X,LOCAL_SIZE_Y};
+	glPushMatrix();
+	static float rot=0;
+	glRotatef(rot, 0, 1, 0);
+	rot += 0.1;
 
-	stRender.local(localSize[0], localSize[1]).global(gridSize[0], gridSize[1]);
-	stRender.run();
+//	camera.setupGL(global_xf * point(0,0,0), 1.7);
+//    glPushMatrix();
+//    glMultMatrixd(global_xf);
 
-	// Explicit Copy 
-	// map the PBO to copy data from the CL buffer via host
-	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, pbo);    
 
-	// map the buffer object into client's memory
-	GLubyte* ptr = (GLubyte*)glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
-	pbo_cl->read(ptr, sizeof(float) * height * width, 0, CL_TRUE);
-	glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB); 
+	glPushMatrix();
+		glColor3f(0, 1, 0);
+		glBegin(GL_LINES);
+			glVertex3f(0, 0, 0);
+			glVertex3f(10, 0, 0);
+
+			glVertex3f(0, 0, 0);
+			glVertex3f(0, 10, 0);
+
+			glVertex3f(0, 0, 0);
+			glVertex3f(0, 0, 10);
+		glEnd();
+	glPopMatrix();
+
+	glPushMatrix();
+		glColor3f(1, 0, 0);
+
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glVertexPointer(3, GL_FLOAT, 0, &points[0]);
+		glDrawArrays(GL_POINTS, 0, points.size()/3);
+		glDisableClientState(GL_VERTEX_ARRAY);
+
+/*
+		for(int y=0; y<GRID_SIZE_Y; y++)
+			for(int z=0; z<GRID_SIZE_Z; z++)
+				for(int x=0; x<GRID_SIZE_X; x++)
+					if(volume[x][y][z])
+					{
+						//glPushMatrix();
+						//glTranslatef(-GRID_SIZE_X/2.0 + x*cubeSize -cubeSize/2,
+						//			 -GRID_SIZE_Y/2.0 + y*cubeSize -cubeSize/2,
+						//			 -GRID_SIZE_Z/2.0 + z*cubeSize -cubeSize/2);
+						//glTranslatef(x*cubeSize,
+						//			 z*cubeSize,
+						//			 y*cubeSize);
+						//	glutSolidCube(cubeSize);
+						//glPopMatrix();
+					}
+*/
+	glPopMatrix();
+	glPopMatrix();
 }
 
 // Display callback for GLUT main loop
 //*****************************************************************************
 void DisplayGL()
 {
-    // use OpenGL to build view matrix
-    GLfloat modelView[16];
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    glRotatef(-viewRotation[0], 1.0, 0.0, 0.0);
-    glRotatef(-viewRotation[1], 0.0, 1.0, 0.0);
-    glTranslatef(-viewTranslation[0], -viewTranslation[1], -viewTranslation[2]);
-    glGetFloatv(GL_MODELVIEW_MATRIX, modelView);
-    glPopMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(-1.0, 1.0, -1.0, 1.0, -10.0, 10.0); 
 
-    invViewMatrix[0] = modelView[0]; invViewMatrix[1] = modelView[4]; invViewMatrix[2] = modelView[8]; invViewMatrix[3] = modelView[12];
-    invViewMatrix[4] = modelView[1]; invViewMatrix[5] = modelView[5]; invViewMatrix[6] = modelView[9]; invViewMatrix[7] = modelView[13];
-    invViewMatrix[8] = modelView[2]; invViewMatrix[9] = modelView[6]; invViewMatrix[10] = modelView[10]; invViewMatrix[11] = modelView[14];
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glTranslatef(-0.9, -0.9, -0.9);
+	glRotatef(5, 1, 0, 1);
 
-     // process 
-    render();
+	// process 
+	render();
 
-    // draw image from PBO
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDisable(GL_DEPTH_TEST);
-    glRasterPos2i(0, 0);
-    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, pbo);
-    glDrawPixels(width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-
-    // flip backbuffer to screen
-    glutSwapBuffers();
-    glutPostRedisplay();
+	// flip backbuffer to screen
+	glutSwapBuffers();
+	glutPostRedisplay();
 }
 
 // Keyboard event handler callback
@@ -532,48 +700,87 @@ void KeyboardGL(unsigned char key, int /*x*/, int /*y*/)
     glutPostRedisplay();
 }
 
+// Set the view...
+void resetview()
+{
+    camera.stopspin();
+    if (!thexform.read(xffilename)) thexform = xform();
+
+    //update_bsph();
+    global_xf = xform::trans(0, 0, -5.0f * 1.7) *
+	xform::trans(-point(0,0,0));
+
+    if (thexform.read(xffilename)) {
+	global_xf = thexform;
+	thexform = xform();
+    }
+}
+
 void mouse(int button, int state, int x, int y)
 {
-	if (state == GLUT_DOWN)
-		buttonState |= 1<<button;
-	else if (state == GLUT_UP)
-		buttonState = 0;
+    static timestamp last_click_time;
+    static unsigned last_click_buttonstate = 0;
+    static float doubleclick_threshold = 0.25f;
 
-	ox = x; 
-	oy = y;
-	glutPostRedisplay();
+    if (glutGetModifiers() & GLUT_ACTIVE_CTRL)
+	buttonstate |= (1 << 30);
+    else
+	buttonstate &= ~(1 << 30);
+
+    if (state == GLUT_DOWN) {
+	buttonstate |= (1 << button);
+	if (buttonstate == last_click_buttonstate &&
+	    now() - last_click_time < doubleclick_threshold) {
+	    //doubleclick(button, x, y);
+	    last_click_buttonstate = 0;
+	} else {
+	    last_click_time = now();
+	    last_click_buttonstate = buttonstate;
+	}
+    } else {
+	buttonstate &= ~(1 << button);
+    }
+
+    //mousemotionfunc(x, y);
+	motion(x, y);
 }
 
 void motion(int x, int y)
 {
-	float dx, dy;
-	dx = x - ox;
-	dy = y - oy;
+/*
+    static const Mouse::button physical_to_logical_map[] = {
+	Mouse::NONE, Mouse::ROTATE, Mouse::MOVEXY, Mouse::MOVEZ,
+	Mouse::MOVEZ, Mouse::MOVEXY, Mouse::MOVEXY, Mouse::MOVEXY,
+    };
 
-	if (buttonState == 3) {
-		// left+middle = zoom
-		viewTranslation[2] += dy / 100.0;
-	} 
-	else if (buttonState & 2) {
-		// middle = translate
-		viewTranslation[0] += dx / 100.0;
-		viewTranslation[1] -= dy / 100.0;
-	}
-	else if (buttonState & 1) {
-		// left = rotate
-		viewRotation[0] += dy / 5.0;
-		viewRotation[1] += dx / 5.0;
-	}
+    Mouse::button b = Mouse::NONE;
+    if (buttonstate & (1 << 3))
+	b = Mouse::WHEELUP;
+    else if (buttonstate & (1 << 4))
+	b = Mouse::WHEELDOWN;
+    else if (buttonstate & (1 << 30))
+	b = Mouse::LIGHT;
+    else
+	b = physical_to_logical_map[buttonstate & 7];
 
-	ox = x; 
-	oy = y;
+
+	xform tmp_xf = global_xf * thexform;
+	camera.mouse(x, y, b,
+		     tmp_xf * point(0,0,0),
+		     1.7,
+		     tmp_xf);
+	thexform = inv(global_xf) * tmp_xf;
+	//update_bsph();
+    
+    if (b != Mouse::NONE)
+	//need_redraw();
+*/
 	glutPostRedisplay();
 }
 
 void Reshape(int x, int y)
 {
 	width = x; height = y;
-	initPixelBuffer();
 
 	glViewport(0, 0, x, y);
 
