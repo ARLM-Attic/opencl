@@ -36,18 +36,21 @@ Launcher Program::createLauncher(const std::string &kernel) {
 	return l;
 }
 
-void Program::build(const string& args) {
+void Program::build(const string& args, bool printLog) {
 	int error;
 	// Builds the program
 	error = clBuildProgram (program, 0, NULL, args.c_str(), NULL, NULL);
-	char* buildLog;
-	size_t logSize;
-	clGetProgramBuildInfo(program, *device, CL_PROGRAM_BUILD_LOG, 0, NULL, &logSize);
-	buildLog = new char[logSize+1];
-	clGetProgramBuildInfo(program, *device, CL_PROGRAM_BUILD_LOG, logSize, buildLog, NULL);
-	buildLog[logSize] = '\0';
-	cout << buildLog << endl;
-	delete[] buildLog;
+	if(printLog) {
+		char* buildLog;
+		size_t logSize;
+		clGetProgramBuildInfo(program, *device, CL_PROGRAM_BUILD_LOG, 0, NULL, &logSize);
+		buildLog = new char[logSize+1];
+		clGetProgramBuildInfo(program, *device, CL_PROGRAM_BUILD_LOG, logSize, buildLog, NULL);
+		buildLog[logSize] = '\0';
+		cout << buildLog << endl;
+		delete[] buildLog;
+	}
+
 	if (error != CL_SUCCESS) {
 		cout << "Build error: " << errorMessage(error) << endl;
 		exit(error);
@@ -75,7 +78,7 @@ void Program::build(const string& args) {
 	}
 }
 
-void Program::build() {
+void Program::build(bool printLog) {
 	string args = "";
-	build(args);
+	build(args, printLog);
 }

@@ -29,8 +29,8 @@ public:
 	Program(std::vector<std::string> kernelNames, cl_context* context, cl_command_queue* queue, cl_device_id* device);
 	Launcher createLauncher(const std::string &kernel);
 	// Build the program and extract the kernels
-	void build();
-	void build(const std::string& args);
+	void build(bool printLog=false);
+	void build(const std::string& args, bool printLog=false);
 
 	inline cl_program getProgram() const { return program; }
 	inline cl_kernel getKernel(const std::string &k) { return kernels[k]; }
