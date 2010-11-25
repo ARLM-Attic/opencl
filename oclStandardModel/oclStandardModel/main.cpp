@@ -6,8 +6,8 @@
 #include <oclUtils.h>
 #include "OpenCL.h"
 
-#include "XForm.h"
-#include "GLCamera.h"
+//#include "XForm.h"
+//#include "GLCamera.h"
 
 #include "nchoosek.h"
 #include "stSimplex.h"
@@ -24,31 +24,28 @@ using namespace std;
 #define GRID_SIZE_Z 180
 #define VOLUME_SIZE ((GRID_SIZE_X) * (GRID_SIZE_Y) * (GRID_SIZE_Z))
 
-int SIMPLICES;
-int s_size;
+int    SIMPLICES;
+int    s_size;
 float* simplices;
-int c_size;
+int    c_size;
 float* c_check;
-int	volume[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
+bool   volume[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
 /*********************************************/
 /* CL ****************************************/
-OpenCL cl;
-Buffer* pbo_cl;
-Program *progStRender;
+OpenCL   cl;
+Buffer*  pbo_cl;
+Program* progStRender;
 Launcher stRender;
 Launcher stFillVolume;
-Buffer* constraints_d;
-Buffer* simplices_d;
-Buffer*	volume_d;
+Buffer*  constraints_d;
+Buffer*  simplices_d;
+Buffer*	 volume_d;
 /*********************************************/
 /* GL ****************************************/
 vector<float> points;
 vector<float> axis;
 
 unsigned int width = 512, height = 512;
-
-#define LOCAL_SIZE_X 16
-#define LOCAL_SIZE_Y 16
 
 unsigned int iGLUTWindowHandle;
 
@@ -60,15 +57,16 @@ void DisplayGL();
 void KeyboardGL(unsigned char key, int x, int y);
 void Reshape(int w, int h);
 void motion(int x, int y);
-void mouse(int button, int state, int x, int y);
+void mouseFunction(int button, int state, int x, int y);
 void Idle(void);
 /*********************************************/
 /* Camera ************************************/
-xform thexform;
+/*xform thexform;
 xform global_xf;
 GLCamera camera;
 string xffilename;
 static unsigned buttonstate = 0;
+*/
 /*********************************************/
 
 float* loadDataset(const char* path, int& num_simplices);
@@ -77,8 +75,8 @@ bool equal(float value1, float value2) {
 	return (fabs(value1-value2) < fabs(T));
 }
 
-void readHeightMap() {
-	simplices = loadDataset("../datasets/d1.txt", SIMPLICES);
+void readHeightMap(const char* filename) {
+	simplices = loadDataset(filename, SIMPLICES);
 	c_size = (N+1)*CONSTRAINTS;
 	s_size = (K+1)*SIMPLICES;
 }
@@ -130,7 +128,7 @@ void clearVolume() {
 	for(int z=0; z<GRID_SIZE_Z; z++)
 		for(int y=0; y<GRID_SIZE_Y; y++)
 			for(int x=0; x<GRID_SIZE_X; x++)
-				volume[x][y][z] = 0;
+				volume[x][y][z] = false;
 }
 
 double getMiliseconds(const int time) {
@@ -179,18 +177,18 @@ void fillVolume() {
 							soma += discreteP[coord] * c_check[c_base + i*(N+1) + coord];
 						}
 
-						if(vX==0 && vY==0 && vZ==0) cout << "fv: " << -c_check[c_base + i*(N+1) + N] << endl;
+						//if(vX==0 && vY==0 && vZ==0) cout << "fv: " << -c_check[c_base + i*(N+1) + N] << endl;
 
 						if(!(soma <= -c_check[c_base + i*(N+1) + N])) {
 							raster = false;
 							break;
 						}
 					}
-					if(vX==0 && vY==0 && vZ==0) cout << "====" << endl;
+					//if(vX==0 && vY==0 && vZ==0) cout << "====" << endl;
 
 					if(raster && vX<GRID_SIZE_X && vY<GRID_SIZE_Y && vZ<GRID_SIZE_Z && vX>=0 && vY>=0 && vZ>=0) {
-						if(vX==0 && vY==0 && vZ==0) cout << "abc " << endl;
-						volume[vX][vY][vZ] = 1;
+						//if(vX==0 && vY==0 && vZ==0) cout << "abc " << endl;
+						volume[vX][vY][vZ] = true;
 					}
 				}
 	}
@@ -230,17 +228,19 @@ int main(int argc, const char **argv) {
 	/*************************************************************************************************************/
 	float* constraints;
 	
+	//bool fromHeightMap = false;
 	bool fromHeightMap = true;
 	if(fromHeightMap)
-		readHeightMap();
+		readHeightMap("../datasets/d1.txt");
+		//readHeightMap("../datasets/d_small.txt");
 	else
 		readTriangles("simplices_in.txt");
 
 	constraints = new float[c_size];
 	// Initialize the constraints so that evaluation is always true (no constraint)
 	for (int c = 0; c < CONSTRAINTS*(N+1); c++) {
-		//constraints[c] = 0;
-		//*
+		constraints[c] = 0;
+		/*
 		if ((c+1)%(N+2)!=0)
 			constraints[c] = 0;
 		else
@@ -249,7 +249,7 @@ int main(int argc, const char **argv) {
 	}
 
 	constraints_d =
-		cl.createBuffer(c_size*sizeof(float), CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, constraints);
+		cl.createBuffer(c_size*sizeof(float), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, constraints);
 	simplices_d = cl.createBuffer(s_size*sizeof(float), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, simplices);
 	/*************************************************************************************************************/
 
@@ -258,7 +258,7 @@ int main(int argc, const char **argv) {
 	files.push_back("stSimplex.h");
 	files.push_back("stSimplex2.cl");
 	Program *program = cl.createProgram(files);
-	program->build();
+	program->build(true);
 
 	const size_t global_ws = shrRoundUp(LOCAL_WORKSIZE, SIMPLICES);
 
@@ -268,7 +268,7 @@ int main(int argc, const char **argv) {
 	clearVolume();
 
 	volume_d =
-		cl.createBuffer(VOLUME_SIZE*sizeof(int), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, volume);
+		cl.createBuffer(VOLUME_SIZE*sizeof(bool), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, volume);
 	
 	stSimplex.arg(simplices_d->getMem()).arg(constraints_d->getMem()).arg(nck_d->getMem()).arg(nckRows).arg(SIMPLICES);
 	stSimplex.arg(volume_d->getMem()).arg(GRID_SIZE_X).arg(GRID_SIZE_Y).arg(GRID_SIZE_Z);
@@ -297,6 +297,7 @@ int main(int argc, const char **argv) {
 			for(int c=0; c<C_PER_SIMPLEX; c++) {
 				for(int dim=0; dim<N+1; dim++) {
 					fprintf(out, "%f ", c_check[s*(C_PER_SIMPLEX)*(N+1) + c*(N+1) + dim]);
+					//fprintf(out, "%f ", constraints[s*(C_PER_SIMPLEX)*(N+1) + c*(N+1) + dim]);
 				}
 				fprintf(out, "\n");
 			}
@@ -320,12 +321,12 @@ int main(int argc, const char **argv) {
 	writeVolume("volume_misto.txt");
 
 	cout << "Performing computation on CPU" << endl;
-							
+	
+	//clearVolume();
 	clock_t cpu_b = clock();
-	//stSimplexCPU(simplices, constraints, nckv, nckRows, SIMPLICES, (int*)volume, GRID_SIZE_X, GRID_SIZE_Y, GRID_SIZE_Z);
+	stSimplexCPU(simplices, constraints, nckv, nckRows, SIMPLICES, (bool*)volume, GRID_SIZE_X, GRID_SIZE_Y, GRID_SIZE_Z);
 	clock_t cpu_a = clock();
-
-	writeVolume("volume.txt");
+	//writeVolume("volume.txt");
 
 	const int cpu_d = cpu_a - cpu_b;
 	cout << "CPU execution time (ms): " << getMiliseconds(cpu_d) << endl;
@@ -371,6 +372,20 @@ float* loadDataset(const char* path, int& num_simplices) {
 		}
 	}
 	df.close();
+
+	/* write subset
+	cout << "Writing subset..." << endl;
+	int ssX=30;
+	int ssY=30;
+	FILE* fo = fopen("../datasets/d_small.txt", "w");
+	fprintf(fo, "%d %d\n", ssX, ssY);
+	for(int i=0; i<ssX; i++) {
+		for(int j=0; j<ssY; j++)
+			fprintf(fo, "%f ", heights[i][j]);
+		fprintf(fo, "\n");
+	}
+	fclose(fo);
+	//*/
 
 	num_simplices = sx*sy*2 ;
 	const int size = num_simplices  * (K+1) * (N+1); // x1, x2, x3, 1
@@ -444,7 +459,7 @@ void InitGL(int argc, const char **argv)
 	glutDisplayFunc(DisplayGL);
 	glutKeyboardFunc(KeyboardGL);
 	glutIdleFunc(Idle);
-	glutMouseFunc(mouse);
+	glutMouseFunc(mouseFunction);
 	glutMotionFunc(motion);
 	glutReshapeFunc(Reshape);
 
@@ -537,81 +552,15 @@ void KeyboardGL(unsigned char key, int /*x*/, int /*y*/)
     glutPostRedisplay();
 }
 
-// Set the view...
-void resetview()
+void mouseFunction(int button, int state, int x, int y)
 {
-    camera.stopspin();
-    if (!thexform.read(xffilename)) thexform = xform();
 
-    //update_bsph();
-    global_xf = xform::trans(0, 0, -5.0f * 1.7) *
-	xform::trans(-point(0,0,0));
-
-    if (thexform.read(xffilename)) {
-	global_xf = thexform;
-	thexform = xform();
-    }
-}
-
-void mouse(int button, int state, int x, int y)
-{
-    static timestamp last_click_time;
-    static unsigned last_click_buttonstate = 0;
-    static float doubleclick_threshold = 0.25f;
-
-    if (glutGetModifiers() & GLUT_ACTIVE_CTRL)
-	buttonstate |= (1 << 30);
-    else
-	buttonstate &= ~(1 << 30);
-
-    if (state == GLUT_DOWN) {
-	buttonstate |= (1 << button);
-	if (buttonstate == last_click_buttonstate &&
-	    now() - last_click_time < doubleclick_threshold) {
-	    //doubleclick(button, x, y);
-	    last_click_buttonstate = 0;
-	} else {
-	    last_click_time = now();
-	    last_click_buttonstate = buttonstate;
-	}
-    } else {
-	buttonstate &= ~(1 << button);
-    }
-
-    //mousemotionfunc(x, y);
-	motion(x, y);
+	glutPostRedisplay();
 }
 
 void motion(int x, int y)
 {
-/*
-    static const Mouse::button physical_to_logical_map[] = {
-	Mouse::NONE, Mouse::ROTATE, Mouse::MOVEXY, Mouse::MOVEZ,
-	Mouse::MOVEZ, Mouse::MOVEXY, Mouse::MOVEXY, Mouse::MOVEXY,
-    };
 
-    Mouse::button b = Mouse::NONE;
-    if (buttonstate & (1 << 3))
-	b = Mouse::WHEELUP;
-    else if (buttonstate & (1 << 4))
-	b = Mouse::WHEELDOWN;
-    else if (buttonstate & (1 << 30))
-	b = Mouse::LIGHT;
-    else
-	b = physical_to_logical_map[buttonstate & 7];
-
-
-	xform tmp_xf = global_xf * thexform;
-	camera.mouse(x, y, b,
-		     tmp_xf * point(0,0,0),
-		     1.7,
-		     tmp_xf);
-	thexform = inv(global_xf) * tmp_xf;
-	//update_bsph();
-    
-    if (b != Mouse::NONE)
-	//need_redraw();
-*/
 	glutPostRedisplay();
 }
 
@@ -633,5 +582,6 @@ void Reshape(int x, int y)
 //*****************************************************************************
 void Idle()
 {
+
     glutPostRedisplay();
 }

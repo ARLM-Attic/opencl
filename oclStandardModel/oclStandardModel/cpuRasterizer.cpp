@@ -1,29 +1,39 @@
-#include "tester.h"
+#include "cpuRasterizer.h"
 
 #define PROJ(ln,col) (proj[(ln)*(N+2)+(col)])
 #define SIMP(ln,col) (simplices[s_base+(K+1)*(ln)+(col)])
 
-#include <iostream>
 using namespace std;
 
-void printMatrix(const SMatrix m, int lines, int cols) {
-	if (lines == 0) lines = N+1;
-	if (cols == 0) cols = K+1;
-
-	for (int ln = 0; ln < lines; ln++) {
-		for (int col = 0; col < cols; col++) {
-			cout << m[ln][col] << "\t";
-		}
-		cout << endl;
-	}
-	cout << endl;
-}
-
-bool isZero(float value, float tolerance) {
+bool CPU_Rasterizer::isZero(float value, float tolerance) {
 	return (fabs(value) < fabs(tolerance));
 }
 
-void columnEchelonForm(SMatrix matrix, int* rank, int* independentCols) {
+float CPU_Rasterizer::determinant(const SMatrix matrix, int size) {
+	if (size == 1) {
+		return matrix[0][0];
+	}
+	else if (size == 2) {
+		float x = matrix[0][0] * matrix[1][1];
+		float y = matrix[1][0] * matrix[0][1];
+		return x - y;
+	}
+	// Sarrus
+	else if (size == 3) {
+		return matrix[0][0]*matrix[1][1]*matrix[2][2] + matrix[0][1]*matrix[1][2]*matrix[2][0] + matrix[1][0]*matrix[2][1]*matrix[0][2]
+		- (matrix[0][2]*matrix[1][1]*matrix[2][0] + matrix[1][0]*matrix[0][1]*matrix[2][2] + matrix[0][0]*matrix[1][2]*matrix[2][1]);
+	}
+}
+
+void CPU_Rasterizer::copyProjectedMatrix(SMatrix src,  SMatrix dst, const int* base) {
+	for (int col = 0; col < K+1; col++) {
+		for (int ln = 0; ln < N+1; ln++) {
+			dst[ln][col] = base[ln]*src[ln][col];
+		}
+	}
+}
+
+void CPU_Rasterizer::columnEchelonForm(SMatrix matrix, int* rank, int* independentCols) {
 	*rank = 0;
 	const int rows = N+1;
 	const int cols = K+1;
@@ -90,23 +100,7 @@ void columnEchelonForm(SMatrix matrix, int* rank, int* independentCols) {
 	}
 }
 
-float determinant(const SMatrix matrix, int size) {
-	if (size == 1) {
-		return matrix[0][0];
-	}
-	else if (size == 2) {
-		float x = matrix[0][0] * matrix[1][1];
-		float y = matrix[1][0] * matrix[0][1];
-		return x - y;
-	}
-	// Sarrus
-	else if (size == 3) {
-		return matrix[0][0]*matrix[1][1]*matrix[2][2] + matrix[0][1]*matrix[1][2]*matrix[2][0] + matrix[1][0]*matrix[2][1]*matrix[0][2]
-		- (matrix[0][2]*matrix[1][1]*matrix[2][0] + matrix[1][0]*matrix[0][1]*matrix[2][2] + matrix[0][0]*matrix[1][2]*matrix[2][1]);
-	}
-}
-
-void getHyperplane(SMatrix points, float* const c, const int* base, const int rank, const int* columns) {
+void CPU_Rasterizer::getHyperplane(SMatrix points, float* const c, const int* base, const int rank, const int* columns) {
 	// Guarantees the square matrix (it's not square because of the homogeneous coordinates)
 	// The matrix must actually have rank columns and rank+1 rows
 	if (rank != base[N+1]) {
@@ -116,7 +110,7 @@ void getHyperplane(SMatrix points, float* const c, const int* base, const int ra
 		for (int i = 0; i < N+2; i++)
 			cout << base[i] << endl;
 		cout << endl << "matrix:" << endl;
-		printMatrix(points);
+		//printMatrix(points);
 		exit(-1);
 	}
 
@@ -191,16 +185,8 @@ void getHyperplane(SMatrix points, float* const c, const int* base, const int ra
 	c[N] = sig*determinant(m, nCols);
 }
 
-void copyProjectedMatrix(SMatrix src,  SMatrix dst, const int* base) {
-	for (int col = 0; col < K+1; col++) {
-		for (int ln = 0; ln < N+1; ln++) {
-			dst[ln][col] = base[ln]*src[ln][col];
-		}
-	}
-}
-
 // Calculates the correct constraint for the given half-space
-void halfSpaceConstraints(float* const coefficients) {
+void CPU_Rasterizer::halfSpaceConstraints(float* const coefficients) {
 	float b = 0;
 	for (int i = 0; i < N; i++) {
 		b += fabs(coefficients[i]);
@@ -211,7 +197,7 @@ void halfSpaceConstraints(float* const coefficients) {
 }
 
 
-void makeStandardOriented(float* const coefficients) {
+void CPU_Rasterizer::makeStandardOriented(float* const coefficients) {
 	bool hasStdOrientation = true;
 	for(int i=0; i<=N; i++)
 		if(coefficients[i] < -TOLERANCE) {
@@ -225,7 +211,7 @@ void makeStandardOriented(float* const coefficients) {
 }
 
 
-void triangleFaceOrientation(const SMatrix points, const int rank,
+void CPU_Rasterizer::triangleFaceOrientation(const SMatrix points, const int rank,
 							const int* const columns, float* const coefficients) {
 	for(int p=0; p<rank; p++)
 		if(columns[p]==0)
@@ -244,7 +230,7 @@ void triangleFaceOrientation(const SMatrix points, const int rank,
 
 //////////////////////////////////////////////////////////////////////////////
 
-void echelonTest(float* simplices, int* ranks, int* indCols, const int numSimplices) {
+void CPU_Rasterizer::echelonTest(float* simplices, int* ranks, int* indCols, const int numSimplices) {
 	//for (int i = 0; i < SIMPLICES; i++) { //temp
 	for (int i = 0; i < numSimplices; i++) {
 		SMatrix e;
@@ -270,7 +256,7 @@ void echelonTest(float* simplices, int* ranks, int* indCols, const int numSimpli
 	}
 }
 
-void stSimplexCPU(const float* const simplices,
+void CPU_Rasterizer::stSimplexCPU(const float* const simplices,
 				  float* const constraints,
 				  const int* const proj,
 				  const int projRows,
@@ -374,8 +360,8 @@ void stSimplexCPU(const float* const simplices,
 						if(proj_base[i])
 							coord = i;
 
-					minC = std::numeric_limits<float>::max();
-					maxC = std::numeric_limits<float>::min();
+					minC = 999999;//numeric_limits<float>::max();
+					maxC = -999999;//numeric_limits<float>::min();
 					for(int p=0; p<N; p++)
 					{
 						minC = min(minC, points[coord][p]);
@@ -461,65 +447,3 @@ void stSimplexCPU(const float* const simplices,
 	}
 	//printf("\n");
 }
-//void hyperplaneTest(float* points, float* constraints, const int* base, const int rank, const int* columns) {
-//	for (int i = 0; i < SIMPLICES; i++) {
-//		SMatrix e;
-//		const int s_base = (N+1)*(K+1)*i;
-//		//copy matrix
-//		for (int j = 0; j < (N+1)*(K+1); j++) {
-//			const int ln = j/(K+1);
-//			const int cl = j%(K+1);
-//			e[ln][cl]=points[s_base+j];
-//		}
-//		// hyperplane
-//		float c[N+1];
-//		getHyperplane(e, c, base, rank, columns);
-//		const int c_base = i*(N+1);
-//		for (int i=0;i<(N+1);i++)
-//			constraints[c_base+i] = c[i];
-//		//copy back
-//		for (int j = 0; j < (N+1)*(K+1); j++) {
-//			const int ln = j/(K+1);
-//			const int cl = j%(K+1);
-//			points[s_base+j]=e[ln][cl];
-//		}
-//	}
-//}
-
-//void fullTest(float* simplices, int* ranks, int* indCols, float* constraints, const int* base) {
-//	for (int i = 0; i < SIMPLICES; i++) {
-//		SMatrix _e;
-//		const int s_base = (N+1)*(K+1)*i;
-//		//copy matrix
-//		for (int j = 0; j < (N+1)*(K+1); j++) {
-//			const int ln = j/(K+1);
-//			const int cl = j%(K+1);
-//			_e[ln][cl]=simplices[s_base+j];
-//		}
-//		SMatrix e;
-//		copyProjectedMatrix(_e, e, base);
-//
-//		// echelon form
-//		int ic[K+1];
-//		columnEchelonForm(e, &ranks[i], ic);
-//		const int ic_base = i*(K+1);
-//		for (int i = 0; i< (K+1); i++)
-//			indCols[ic_base+i] = ic[i];
-//		
-//		// hyperplane
-//		float c[N+1];
-//		int columns[K+1];
-//		for (int l = 0; l < K+1; l++) columns[l] = 1;
-//		getHyperplane(e, c, base, ranks[i], columns);
-//		const int c_base = i*(N+1);
-//		for (int i=0;i<(N+1);i++)
-//			constraints[c_base+i] = c[i];
-//
-//		//copy back
-//		for (int j = 0; j < (N+1)*(K+1); j++) {
-//			const int ln = j/(K+1);
-//			const int cl = j%(K+1);
-//			simplices[s_base+j]=e[ln][cl];
-//		}
-//	}
-//}

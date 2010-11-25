@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../OCLpp/;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\inc&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\shared\inc&quot;"
+				AdditionalIncludeDirectories="../OCLpp/;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\inc&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\shared\inc&quot;;cam/"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -176,6 +176,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\cpuRasterizer.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\dummy.cl"
 				>
 			</File>
@@ -185,6 +189,10 @@
 			</File>
 			<File
 				RelativePath=".\nchoosek.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\rasterizer.cpp"
 				>
 			</File>
 			<File
@@ -214,7 +222,15 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\cpuRasterizer.h"
+				>
+			</File>
+			<File
 				RelativePath=".\nchoosek.h"
+				>
+			</File>
+			<File
+				RelativePath=".\rasterizer.h"
 				>
 			</File>
 			<File

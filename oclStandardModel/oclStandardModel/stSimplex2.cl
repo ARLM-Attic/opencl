@@ -5,10 +5,10 @@
 void columnEchelonForm(SMatrix matrix, int* const rank, int* const independentCols);
 
 float determinant(const SMatrix matrix, const int size);
-void getHyperplane(const SMatrix points,float* const c, __constant const int* const base,
+void getHyperplane(const SMatrix points,float* const c, /*__constant const*/__global int* const base,
 				   const int rank, const int* const columns);
 
-void copyProjectedMatrix(const SMatrix src, SMatrix dst, __constant const int* const base);
+void copyProjectedMatrix(const SMatrix src, SMatrix dst, /*__constant const*/__global int* const base);
 
 bool hasStandardOrientation(const float* const coefficients);
 void halfSpaceConstraints(float* const coefficients);
@@ -21,10 +21,11 @@ void triangleFaceOrientation(const SMatrix points, const int rank,
 
 __kernel void stSimplex(__global const float* const simplices,
 						__global float* const constraints,
-						__constant const int* const proj,
+						//__constant const int* const proj,
+						__global int* const proj,
 						const int projRows,
 						const int numSimplices,
-						__global int* const volume,
+						__global bool* const volume,
 						const int volumeW, const int volumeH, const int volumeD)
 {
 	const int idx = get_global_id(0);
@@ -48,7 +49,8 @@ __kernel void stSimplex(__global const float* const simplices,
 		// Iterates through all possible projections
 		for (int d = 0; d < projRows; d++) {
 			const int dim = PROJ(d,N+1);
-			__constant const int* proj_base = &(PROJ(d,0));
+			//__constant const int* proj_base = &(PROJ(d,0));
+			int* const proj_base = (int* const) &(PROJ(d,0));
 			//__constant const int* const proj_base = &proj[(d)*(N+2)];
 			//Copies the projected matrix to echelon
 			copyProjectedMatrix(points, echelon, PROJ_BASE);
@@ -257,7 +259,7 @@ void triangleFaceOrientation(const SMatrix points, const int rank,
 
 void copyProjectedMatrix(const SMatrix src,
 						 SMatrix dst,
-						 __constant const int* const base)
+						/* __constant const*/__global int* const base)
 {
 	for (int col = 0; col < K+1; col++) {
 		for (int ln = 0; ln < N+1; ln++) {
@@ -359,7 +361,7 @@ float determinant(const SMatrix matrix, const int size) {
 
 void getHyperplane2(const SMatrix points,
 				   float* const c,
-				   __constant const int* const basis,
+				   /*__constant const*/__global int* const basis,
 				   const int rank) {
 	SMatrix m;
 
@@ -391,7 +393,7 @@ void getHyperplane2(const SMatrix points,
 
 void getHyperplane(const SMatrix points,
 				   float* const c,
-				   __constant const int* const base,
+				   /*__constant const*/__global int* const base,
 				   const int rank,
 				   const int* const columns) {
 	// Guarantees the square matrix (it's not square because of the homogeneous coordinates)
