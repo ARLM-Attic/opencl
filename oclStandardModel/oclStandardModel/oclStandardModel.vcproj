@@ -184,6 +184,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\gpuRasterizer.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\main.cpp"
 				>
 			</File>
@@ -223,6 +227,10 @@
 			>
 			<File
 				RelativePath=".\cpuRasterizer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\gpuRasterizer.h"
 				>
 			</File>
 			<File

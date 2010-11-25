@@ -19,7 +19,7 @@
 
 class Rasterizer {
 	protected:
-		int    SIMPLICES;
+		int    numSimplices;
 		int    s_size;
 		float* simplices;
 		int    c_size;

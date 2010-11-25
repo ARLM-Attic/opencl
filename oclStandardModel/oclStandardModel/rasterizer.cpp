@@ -87,7 +87,7 @@ void Rasterizer::clearVolume() {
 }
 
 void Rasterizer::fillVolume() {
-	for(int idx = 0; idx < SIMPLICES; idx++) {
+	for(int idx = 0; idx < numSimplices; idx++) {
 		const int c_base = (N+1)*C_PER_SIMPLEX*idx;
 
 		int c_counter = C_PER_SIMPLEX*(N+1);
@@ -97,7 +97,7 @@ void Rasterizer::fillVolume() {
 		for (int i = 0; i < (K+1)*(N+1); i++) {
 			const int ln = i/(K+1);
 			const int cl = i%(K+1);
-			points[ln][cl] = simplices[idx*(K+1) + ln*SIMPLICES*(K+1) + cl];
+			points[ln][cl] = simplices[idx*(K+1) + ln*numSimplices*(K+1) + cl];
 		}
 
 		float minCoord[] = {9999, 9999, 9999};
@@ -166,9 +166,9 @@ void Rasterizer::writeVolume(const char* filename) {
 }
 
 void Rasterizer::readHeightMap(const char* filename) {
-	simplices = loadDataset(filename, SIMPLICES);
+	simplices = loadDataset(filename, numSimplices);
 	c_size = (N+1)*CONSTRAINTS;
-	s_size = (K+1)*SIMPLICES;
+	s_size = (K+1)*numSimplices;
 }
 
 void Rasterizer::readTriangles(const char* filename) {
@@ -176,18 +176,18 @@ void Rasterizer::readTriangles(const char* filename) {
 	if(filename) splxFile = fopen(filename, "r");
 
 	cout << "Using " << filename << " simplices..." << endl;
-	fscanf(splxFile, "%d", &SIMPLICES);
+	fscanf(splxFile, "%d", &numSimplices);
 	c_size = (N+1)*CONSTRAINTS;
-	s_size = (N+1)*(K+1)*SIMPLICES;
+	s_size = (N+1)*(K+1)*numSimplices;
 	simplices = new float[s_size];
 	//Read the file
 	//Simplex s, point p, coordinate dim
-	for (int s=0; s<SIMPLICES; s++) {
+	for (int s=0; s<numSimplices; s++) {
 		for(int dim=0; dim<N; dim++) {			
 			for(int p=0; p<K+1; p++) {
-				fscanf(splxFile, "%f ", &simplices[dim*(SIMPLICES)*(K+1) + s*(K+1) + p]);
+				fscanf(splxFile, "%f ", &simplices[dim*(numSimplices)*(K+1) + s*(K+1) + p]);
 				//homogenous coordinates
-				simplices[N*(SIMPLICES)*(K+1) + s*(K+1) + p] = 1;
+				simplices[N*(numSimplices)*(K+1) + s*(K+1) + p] = 1;
 			}
 		}
 	}
