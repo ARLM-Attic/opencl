@@ -33,13 +33,16 @@ void initializeTweakBar();
 
 TwBar* bar;
 // Shapes scale
-float g_Zoom = 0.5;
+float g_Zoom = 0.8;
 // Shape orientation (stored as a quaternion)
 float g_Rotation[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 // Auto rotate
 int g_AutoRotate = 0;
 int g_RotateTime = 0;
 float g_RotateStart[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+void TW_CALL GetRunOnGpuCB(void *value, void *clientData);
+void TW_CALL SetRunOnGpuCB(const void *value, void *clientData);
 
 void TW_CALL SetAutoRotateCB(const void *value, void *clientData);
 void TW_CALL GetAutoRotateCB(void *value, void *clientData);
@@ -85,8 +88,8 @@ int main(int argc, const char* argv[]) {
 void initializeTweakBar() {
 	TwInit(TW_OPENGL, NULL);
 
-	bar = TwNewBar("TweakBar");
-	TwDefine(" TweakBar size='200 400' color='200 200 200' ");
+	bar = TwNewBar("Config");
+	TwDefine(" Config position='550 415' size='225 160' color='150 150 150' ");
 
 	TwAddVarRW(bar, "Zoom", TW_TYPE_FLOAT, &g_Zoom, 
 		" min=0.01 max=2.5 step=0.01 keyIncr=z keyDecr=Z help='Scale the object (1=original size).' ");
@@ -95,6 +98,8 @@ void initializeTweakBar() {
 	// Add callback to toggle auto-rotate mode (callback functions are defined above).
 	TwAddVarCB(bar, "AutoRotate", TW_TYPE_BOOL32, SetAutoRotateCB, GetAutoRotateCB, NULL, 
 		" label='Auto-rotate' key=space help='Toggle auto-rotate mode.' ");
+	TwAddVarCB(bar, "RunOnGPU", TW_TYPE_BOOL8, SetRunOnGpuCB, GetRunOnGpuCB, NULL, 
+		" label='GPU' key=c help='Toggle run mode.' ");
 }
 
 
@@ -295,7 +300,15 @@ void Idle()
 
 
 
+void TW_CALL GetRunOnGpuCB(void *value, void *clientData) {
+	*(bool *)(value) = useGpuResults;
+}
 
+void TW_CALL SetRunOnGpuCB(const void *value, void *clientData)
+{
+	useGpuResults = *(bool *)(value);
+	initDrawArray();
+}
 
 
 
@@ -305,7 +318,7 @@ void TW_CALL SetAutoRotateCB(const void *value, void *clientData)
 	(void)clientData; // unused
 
 	g_AutoRotate = *(const int *)(value); // copy value to g_AutoRotate
-	if( g_AutoRotate!=0 ) 
+	if(g_AutoRotate != 0) 
 	{
 		// init rotation
 		g_RotateTime = glutGet(GLUT_ELAPSED_TIME);
@@ -315,11 +328,11 @@ void TW_CALL SetAutoRotateCB(const void *value, void *clientData)
 		g_RotateStart[3] = g_Rotation[3];
 
 		// make Rotation variable read-only
-		TwDefine(" TweakBar/ObjRotation readonly ");
+		TwDefine(" Config/ObjRotation readonly ");
 	}
 	else
 		// make Rotation variable read-write
-		TwDefine(" TweakBar/ObjRotation readwrite ");
+		TwDefine(" Config/ObjRotation readwrite ");
 }
 
 
