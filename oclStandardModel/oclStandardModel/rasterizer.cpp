@@ -2,6 +2,14 @@
 
 using namespace std;
 
+Rasterizer::Rasterizer() {
+	const int _m_ = (N < K+1)? (N) : (K+1);
+	nckv = nchoosekVector(N, _m_, &nckRows);
+	nck_size = (N+2)*nckRows*sizeof(int);
+	constraints = NULL;
+	c_check = NULL;
+}
+
 float* Rasterizer::loadDataset(const char* path, int& num_simplices) {
 	ifstream df;
 	df.open(path);
@@ -167,7 +175,7 @@ void Rasterizer::writeVolume(const char* filename) {
 
 void Rasterizer::readHeightMap(const char* filename) {
 	simplices = loadDataset(filename, numSimplices);
-	c_size = (N+1)*CONSTRAINTS;
+	c_size = (N+1)*numSimplices*C_PER_SIMPLEX;
 	s_size = (K+1)*numSimplices;
 }
 
@@ -177,7 +185,7 @@ void Rasterizer::readTriangles(const char* filename) {
 
 	cout << "Using " << filename << " simplices..." << endl;
 	fscanf(splxFile, "%d", &numSimplices);
-	c_size = (N+1)*CONSTRAINTS;
+	c_size = (N+1)*numSimplices*C_PER_SIMPLEX;
 	s_size = (N+1)*(K+1)*numSimplices;
 	simplices = new float[s_size];
 	//Read the file
@@ -200,4 +208,17 @@ void Rasterizer::readInput(const char* filename, bool isHeightMap) {
 		readHeightMap(filename);
 	else
 		readTriangles(filename);
+}
+
+void Rasterizer::initializeConstraints() {
+	if(constraints) free(constraints);
+
+	constraints = new float[c_size];
+	// Initialize the constraints so that evaluation is always true (no constraint)
+	for (int c = 0; c < numSimplices*C_PER_SIMPLEX*(N+1); c++) {
+		constraints[c] = 0;
+	}
+
+	if(c_check) free(c_check);
+	c_check = new float[c_size];
 }

@@ -1,6 +1,6 @@
 #include "cpuRasterizer.h"
 
-#define PROJ(ln,col) (proj[(ln)*(N+2)+(col)])
+#define PROJ(ln,col) (nckv[(ln)*(N+2)+(col)])
 #define SIMP(ln,col) (simplices[s_base+(K+1)*(ln)+(col)])
 
 using namespace std;
@@ -230,7 +230,7 @@ void CPU_Rasterizer::triangleFaceOrientation(const SMatrix points, const int ran
 
 //////////////////////////////////////////////////////////////////////////////
 
-void CPU_Rasterizer::echelonTest(float* simplices, int* ranks, int* indCols, const int numSimplices) {
+void CPU_Rasterizer::echelonTest(int* ranks, int* indCols) {
 	//for (int i = 0; i < SIMPLICES; i++) { //temp
 	for (int i = 0; i < numSimplices; i++) {
 		SMatrix e;
@@ -256,13 +256,7 @@ void CPU_Rasterizer::echelonTest(float* simplices, int* ranks, int* indCols, con
 	}
 }
 
-void CPU_Rasterizer::stSimplexCPU(const float* const simplices,
-				  float* const constraints,
-				  const int* const proj,
-				  const int projRows,
-				  const int numSimplices,
-				  bool* const volume,
-				  const int volumeW, const int volumeH, const int volumeD)
+void CPU_Rasterizer::stSimplex()
 {
 	//for (int idx = 0; idx < SIMPLICES; idx++) { //temp
 	for (int idx = 0; idx < numSimplices; idx++) {
@@ -291,7 +285,7 @@ void CPU_Rasterizer::stSimplexCPU(const float* const simplices,
 		//printMatrix(points);
 
 		// Iterates through all possible projections
-		for (int d = 0; d < projRows; d++) {
+		for (int d = 0; d < nckRows; d++) {
 			const int dim = PROJ(d,N+1);
 			const int* proj_base = &PROJ(d,0);
 			//Copies the projected matrix to echelon
@@ -404,46 +398,5 @@ void CPU_Rasterizer::stSimplexCPU(const float* const simplices,
 				}
 			}
 		}
-
-		float minCoord[] = {9999, 9999, 9999};
-		float maxCoord[] = {-9999, -9999, -9999};
-		for(int coord=0; coord<N; coord++)
-		{
-			for(int p=0; p<N; p++)
-			{
-				minCoord[coord] = min(minCoord[coord], points[coord][p]);
-				maxCoord[coord] = max(maxCoord[coord], points[coord][p]);
-			}
-			// get the floor of the min value and the ceil of the max
-			minCoord[coord] = (int) minCoord[coord];
-			maxCoord[coord] = (int) (maxCoord[coord] + 1);
-		}
-
-		for(int vX=(int)minCoord[0]; vX<=(int)maxCoord[0]; vX++)
-			for(int vY=(int)minCoord[1]; vY<=(int)maxCoord[1]; vY++)
-				for(int vZ=(int)minCoord[2]; vZ<=(int)maxCoord[2]; vZ++)
-				{
-					float discreteP[] = {vX, vY, vZ};
-
-					bool raster = true;
-					for(int i=0; i < c_counter/(N+1); i++)
-					{
-						float sum = 0;
-						for(int coord=0; coord<N; coord++) {
-							sum += discreteP[coord] * constraints[c_base + i*(N+1) + coord];
-						}
-
-						if(!(sum <= -constraints[c_base + i*(N+1) + N])) {
-							raster = false;
-							break;
-						}
-					}
-
-					if(raster && vX<volumeW && vY<volumeH && vZ<volumeD && vX>=0 && vY>=0 && vZ>=0) {
-						volume[vX*volumeH*volumeD + vY*volumeD + vZ] = true;
-					}
-				}
-		//*/
 	}
-	//printf("\n");
 }

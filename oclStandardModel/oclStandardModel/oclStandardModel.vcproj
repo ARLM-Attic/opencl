@@ -192,6 +192,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\mainBKP.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\nchoosek.cpp"
 				>
 			</File>

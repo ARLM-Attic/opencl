@@ -24,11 +24,16 @@ class Rasterizer {
 		float* simplices;
 		int    c_size;
 		float* c_check;
-		bool   volume[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
+		int*   nckv;
+		int    nckRows;
+		int    nck_size;
+		float* constraints;
 
 		float* loadDataset(const char* path, int& num_simplices);
 	public:
-		Rasterizer() { }
+		bool   volume[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
+
+		Rasterizer();
 		~Rasterizer() { }
 
 		void clearVolume();
@@ -38,6 +43,8 @@ class Rasterizer {
 		void readHeightMap(const char* filename);
 		void readTriangles(const char* filename);
 		void readInput(const char* filename, bool isHeightMap);
+
+		void initializeConstraints();
 };
 
 #endif
