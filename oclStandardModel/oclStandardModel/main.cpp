@@ -7,7 +7,7 @@ using namespace std;
 vector<float> points;
 vector<float> axis;
 
-unsigned int width = 512, height = 512;
+unsigned int width = 800, height = 600;
 
 unsigned int iGLUTWindowHandle;
 
@@ -30,6 +30,9 @@ bool useGpuResults = false;
 int main(int argc, const char* argv[]) {
 	const char* inputFile = "../datasets/d1.txt";
 	const bool isHeightMap = true;
+	//const char* inputFile = "simplices_in.txt";
+	//const bool isHeightMap = false;
+
 
 	cout << "Starting CPU version..." << endl;
 	cpuR.readInput(inputFile, isHeightMap);
@@ -44,7 +47,9 @@ int main(int argc, const char* argv[]) {
 	gpuR.initializeConstraints();
 	gpuR.clearVolume();
 	gpuR.buildProgram();
+	gpuR.setWorksize(LOCAL_WORKSIZE, shrRoundUp(LOCAL_WORKSIZE, gpuR.getNumSimplices()));
 	gpuR.stSimplex();
+	gpuR.readResults();
 	gpuR.fillVolume();
 	cout << "GPU version finished!" << endl;
 
@@ -74,9 +79,6 @@ void InitGL(int argc, const char **argv)
 	glutReshapeFunc(Reshape);
 
 	glewInit();
-
-	//glEnable(GL_LIGHTING);
-	//glEnable(GL_LIGHT0);
 }
 
 void initDrawArray()
@@ -92,6 +94,26 @@ void initDrawArray()
 					points.push_back((z+0.5)*cubeSize);
 					points.push_back((y+0.5)*cubeSize);
 				}
+}
+
+void drawText(const float x, const float y, const float z, void* font, const char* format, ...)
+{
+	int i, len;
+	char str[500];
+
+	glPushAttrib(GL_DEPTH_BUFFER_BIT | GL_LIGHTING_BIT);
+	glDisable(GL_LIGHTING);
+	glDisable(GL_DEPTH_TEST);
+	va_list params;
+	va_start(params, format);
+	vsprintf(str, format, params);
+
+	glRasterPos3f(x, y, z);
+	for (i = 0, len = strlen(str); i < len; i++)
+		glutBitmapCharacter(font, (int)str[i]);
+
+	va_end(params);
+	glPopAttrib();
 }
 
 
@@ -116,7 +138,7 @@ void render()
 		glPopMatrix();
 
 		glPushMatrix();
-			glColor3f(1, 0, 0);
+			glColor3f(0.95, 0.2, 0.2);
 			glEnableClientState(GL_VERTEX_ARRAY);
 			glVertexPointer(3, GL_FLOAT, 0, &points[0]);
 			glDrawArrays(GL_POINTS, 0, points.size()/3);
@@ -136,19 +158,22 @@ void DisplayGL()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	static float rot=0;
-	glRotatef(rot, 0, 1, 0);
-	rot += 0.1;
+	glPushMatrix();
+		static float rot=0;
+		glRotatef(rot, 0, 1, 0);
+		rot += 0.1;
 
-//	camera.setupGL(global_xf * point(0,0,0), 1.7);
-    //glPushMatrix();
-//    glMultMatrixd(global_xf);
+		glTranslatef(-0.9, -0.9, -0.9);
+		glRotatef(5, 1, 0, 1);
 
-	glTranslatef(-0.9, -0.9, -0.9);
-	glRotatef(5, 1, 0, 1);
-
-	// process 
-	render();
+		// process 
+		render();
+	glPopMatrix();
+	glColor3f(0.9, 0.9, 0.9);
+	const char* label;
+	if(useGpuResults) label = "GPU Rasterizer";
+	else label = "CPU Rasterizer";
+	drawText(0.6, 0.9, 0, GLUT_BITMAP_HELVETICA_12, label);
 
 	// flip backbuffer to screen
 	glutSwapBuffers();

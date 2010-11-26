@@ -1,8 +1,8 @@
 #ifndef _ST_SIMPLEX_H_
 #define _ST_SIMPLEX_H_
 
-#define N 3
-#define K 2
+#define N 3 // N points, N dimensions
+#define K 2 // K-simplex, K+1 dimensions
 #define _SIMPLICES 1048576	//(1024*1024)
 #define C_PER_SIMPLEX 16
 #define CONSTRAINTS (SIMPLICES*C_PER_SIMPLEX)

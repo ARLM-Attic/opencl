@@ -23,7 +23,6 @@ class Rasterizer {
 		int    s_size;
 		float* simplices;
 		int    c_size;
-		float* c_check;
 		int*   nckv;
 		int    nckRows;
 		int    nck_size;
@@ -35,6 +34,8 @@ class Rasterizer {
 
 		Rasterizer();
 		~Rasterizer() { }
+
+		int getNumSimplices();
 
 		void clearVolume();
 		void fillVolume();

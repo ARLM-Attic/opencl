@@ -7,7 +7,10 @@ Rasterizer::Rasterizer() {
 	nckv = nchoosekVector(N, _m_, &nckRows);
 	nck_size = (N+2)*nckRows*sizeof(int);
 	constraints = NULL;
-	c_check = NULL;
+}
+
+int Rasterizer::getNumSimplices() {
+	return numSimplices;
 }
 
 float* Rasterizer::loadDataset(const char* path, int& num_simplices) {
@@ -133,12 +136,12 @@ void Rasterizer::fillVolume() {
 					{
 						float soma = 0;
 						for(int coord=0; coord<N; coord++) {
-							soma += discreteP[coord] * c_check[c_base + i*(N+1) + coord];
+							soma += discreteP[coord] * constraints[c_base + i*(N+1) + coord];
 						}
 
-						//if(vX==0 && vY==0 && vZ==0) cout << "fv: " << -c_check[c_base + i*(N+1) + N] << endl;
+						//if(vX==0 && vY==0 && vZ==0) cout << "fv: " << -constraints[c_base + i*(N+1) + N] << endl;
 
-						if(!(soma <= -c_check[c_base + i*(N+1) + N])) {
+						if(!(soma <= -constraints[c_base + i*(N+1) + N])) {
 							raster = false;
 							break;
 						}
@@ -218,7 +221,4 @@ void Rasterizer::initializeConstraints() {
 	for (int c = 0; c < numSimplices*C_PER_SIMPLEX*(N+1); c++) {
 		constraints[c] = 0;
 	}
-
-	if(c_check) free(c_check);
-	c_check = new float[c_size];
 }
