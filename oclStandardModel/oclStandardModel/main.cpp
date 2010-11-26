@@ -1,4 +1,7 @@
 #include "cpuRasterizer.h"
+#include "gpuRasterizer.h"
+
+using namespace std;
 
 /* GL ****************************************/
 vector<float> points;
@@ -20,14 +23,30 @@ void mouseFunction(int button, int state, int x, int y);
 void Idle(void);
 /*********************************************/
 
-CPU_Rasterizer r;
+CPU_Rasterizer cpuR;
+GPU_Rasterizer gpuR;
+bool useGpuResults = false;
 
 int main(int argc, const char* argv[]) {
-	r.readInput("../datasets/d1.txt", true);
-	r.initializeConstraints();
-	r.clearVolume();
-	r.stSimplex();
-	r.fillVolume();
+	const char* inputFile = "../datasets/d1.txt";
+	const bool isHeightMap = true;
+
+	cout << "Starting CPU version..." << endl;
+	cpuR.readInput(inputFile, isHeightMap);
+	cpuR.initializeConstraints();
+	cpuR.clearVolume();
+	cpuR.stSimplex();
+	cpuR.fillVolume();
+	cout << "CPU version finished!" << endl;
+
+	cout << "Starting GPU version..." << endl;
+	gpuR.readInput(inputFile, isHeightMap);
+	gpuR.initializeConstraints();
+	gpuR.clearVolume();
+	gpuR.buildProgram();
+	gpuR.stSimplex();
+	gpuR.fillVolume();
+	cout << "GPU version finished!" << endl;
 
 	InitGL(argc, argv);
 	initDrawArray();
@@ -62,11 +81,12 @@ void InitGL(int argc, const char **argv)
 
 void initDrawArray()
 {
+	points.clear();
 	double cubeSize = 2.0/((double)GRID_SIZE_X);
 	for(int y=0; y<GRID_SIZE_Y; y++)
 		for(int z=0; z<GRID_SIZE_Z; z++)
 			for(int x=0; x<GRID_SIZE_X; x++)
-				if(r.volume[x][y][z])
+				if((useGpuResults && gpuR.volume[x][y][z]) || (!useGpuResults && cpuR.volume[x][y][z]))
 				{
 					points.push_back((x+0.5)*cubeSize);
 					points.push_back((z+0.5)*cubeSize);
@@ -139,6 +159,10 @@ void DisplayGL()
 //*****************************************************************************
 void KeyboardGL(unsigned char key, int /*x*/, int /*y*/)
 {
+	if(key == 'C' || key == 'c') {
+		useGpuResults = !useGpuResults;
+		initDrawArray();
+	}
     glutPostRedisplay();
 }
 
