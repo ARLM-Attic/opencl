@@ -1,6 +1,7 @@
 #include <AntTweakBar.h>
 #include "cpuRasterizer.h"
 #include "gpuRasterizer.h"
+#include "ompRasterizer.h"
 
 using namespace std;
 
@@ -26,6 +27,7 @@ void Idle(void);
 
 CPU_Rasterizer cpuR;
 GPU_Rasterizer gpuR;
+OMP_Rasterizer ompR;
 bool useGpuResults = false;
 
 /* TweakBar **********************************/
@@ -55,18 +57,32 @@ void MultiplyQuaternions(const float *q1, const float *q2, float *qout);
 int main(int argc, const char* argv[]) {
 	initializeTweakBar();
 
-	const char* inputFile = "../datasets/d1.txt";
-	const bool isHeightMap = true;
-	//const char* inputFile = "simplices_in.txt";
+	//const char* inputFile = "../datasets/d1.txt";
+	//const bool isHeightMap = true;
+	//const char* inputFile = "simplices_in2.txt";
 	//const bool isHeightMap = false;
+	const char* inputFile = "ds.txt";
+	const bool isHeightMap = false;
 
 	cout << "Starting CPU version..." << endl;
 	cpuR.readInput(inputFile, isHeightMap);
 	cpuR.initializeConstraints();
 	cpuR.clearVolume();
+	size_t time = clock();
 	cpuR.stSimplex();
 	cpuR.fillVolume();
-	cout << "CPU version finished!" << endl;
+	time = clock() - time;
+	cout << "CPU version finished! " << time << endl;
+
+	cout << "Starting OMP version..." << endl;
+	ompR.readInput(inputFile, isHeightMap);
+	ompR.initializeConstraints();
+	ompR.clearVolume();
+	time = clock();
+	ompR.stSimplex();
+	ompR.fillVolume();
+	time = clock() - time;
+	cout << "OMP version finished! " << time << endl;
 
 	cout << "Starting GPU version..." << endl;
 	gpuR.readInput(inputFile, isHeightMap);
@@ -74,10 +90,12 @@ int main(int argc, const char* argv[]) {
 	gpuR.clearVolume();
 	gpuR.buildProgram();
 	gpuR.setWorksize(LOCAL_WORKSIZE, shrRoundUp(LOCAL_WORKSIZE, gpuR.getNumSimplices()));
+	time = clock();
 	gpuR.stSimplex();
 	gpuR.readResults();
 	gpuR.fillVolume();
-	cout << "GPU version finished!" << endl;
+	time = clock() - time;
+	cout << "GPU version finished! " << time << endl;
 
 	InitGL(argc, argv);
 	initDrawArray();

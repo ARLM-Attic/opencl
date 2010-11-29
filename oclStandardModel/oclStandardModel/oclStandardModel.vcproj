@@ -47,6 +47,7 @@
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				FloatingPointModel="0"
+				OpenMP="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -200,6 +201,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ompRasterizer.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\rasterizer.cpp"
 				>
 			</File>
@@ -239,6 +244,10 @@
 			</File>
 			<File
 				RelativePath=".\nchoosek.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ompRasterizer.h"
 				>
 			</File>
 			<File
