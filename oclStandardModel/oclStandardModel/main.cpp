@@ -3,6 +3,11 @@
 #include "gpuRasterizer.h"
 #include "ompRasterizer.h"
 
+#include <GL/glut.h>
+#include <cstring>
+#include <cstdlib>
+#include <cstdarg>
+
 using namespace std;
 
 /* GL ****************************************/
@@ -154,8 +159,6 @@ void InitGL(int argc, const char **argv)
 	// - Send 'glutGetModifers' function pointer to AntTweakBar;
 	//   required because the GLUT key event functions do not report key modifiers states.
 	TwGLUTModifiersFunc(glutGetModifiers);
-
-	glewInit();
 }
 
 void initDrawArray()

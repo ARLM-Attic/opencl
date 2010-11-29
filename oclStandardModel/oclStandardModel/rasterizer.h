@@ -12,8 +12,6 @@
 #include <fstream>
 #include <ctime>
 
-#include <oclUtils.h>
-
 #include "nchoosek.h"
 #include "stSimplex.h"
 

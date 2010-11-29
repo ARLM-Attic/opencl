@@ -4,6 +4,7 @@
 #include "rasterizer.h"
 
 #include "OpenCL.h"
+#include <oclUtils.h>
 
 
 class GPU_Rasterizer : public Rasterizer {

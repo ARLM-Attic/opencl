@@ -87,19 +87,6 @@ float* Rasterizer::loadDataset(const char* path, int& num_simplices) {
 		delete[] heights[i];
 	delete[] heights;
 
-	/*
-	FILE* fout = fopen("ds.txt", "w");
-	fprintf(fout, "%d\n\n", num_simplices);
-	for(int s=0; s<num_simplices; s++) {
-		for(int dim=0; dim<N; dim++)
-			for(int p=0; p<K+1; p++)
-				fprintf(fout, "%d ", (int)simplices[dim*(num_simplices)*(K+1) + s*(K+1) + p]);
-			fprintf(fout, "\n");
-		fprintf(fout, "\n");
-	}
-	fclose(fout);
-	*/
-
 	return simplices;
 }
 
