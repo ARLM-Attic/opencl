@@ -57,12 +57,12 @@ void MultiplyQuaternions(const float *q1, const float *q2, float *qout);
 int main(int argc, const char* argv[]) {
 	initializeTweakBar();
 
-	//const char* inputFile = "../datasets/d1.txt";
-	//const bool isHeightMap = true;
+	const char* inputFile = "../datasets/d1.txt";
+	const bool isHeightMap = true;
 	//const char* inputFile = "simplices_in2.txt";
 	//const bool isHeightMap = false;
-	const char* inputFile = "ds.txt";
-	const bool isHeightMap = false;
+	//const char* inputFile = "ds.txt";
+	//const bool isHeightMap = false;
 
 	cout << "Starting CPU version..." << endl;
 	cpuR.readInput(inputFile, isHeightMap);

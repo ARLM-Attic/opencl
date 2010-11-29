@@ -87,18 +87,18 @@ float* Rasterizer::loadDataset(const char* path, int& num_simplices) {
 		delete[] heights[i];
 	delete[] heights;
 
+	/*
 	FILE* fout = fopen("ds.txt", "w");
 	fprintf(fout, "%d\n\n", num_simplices);
 	for(int s=0; s<num_simplices; s++) {
-		for(int dim=0; dim<N; dim++) {			
-			for(int p=0; p<K+1; p++) {
+		for(int dim=0; dim<N; dim++)
+			for(int p=0; p<K+1; p++)
 				fprintf(fout, "%d ", (int)simplices[dim*(num_simplices)*(K+1) + s*(K+1) + p]);
-			}
 			fprintf(fout, "\n");
-		}
 		fprintf(fout, "\n");
 	}
 	fclose(fout);
+	*/
 
 	return simplices;
 }
@@ -192,7 +192,7 @@ void Rasterizer::writeVolume(const char* filename) {
 void Rasterizer::readHeightMap(const char* filename) {
 	simplices = loadDataset(filename, numSimplices);
 	c_size = (N+1)*numSimplices*C_PER_SIMPLEX;
-	s_size = (K+1)*numSimplices;
+	s_size = (N+1)*(K+1)*numSimplices;
 }
 
 void Rasterizer::readTriangles(const char* filename) {

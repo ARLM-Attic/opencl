@@ -6,7 +6,7 @@
 using namespace std;
 
 OMP_Rasterizer::OMP_Rasterizer() {
-	omp_set_num_threads(4);
+	omp_set_num_threads(2*omp_get_num_procs());
 }
 
 bool OMP_Rasterizer::isZero(float value, float tolerance) {
