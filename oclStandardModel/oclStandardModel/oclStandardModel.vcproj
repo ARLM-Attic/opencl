@@ -120,9 +120,12 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="../OCLpp/;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\inc&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\shared\inc&quot;;cam/;anttweakbar/include/"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
-				RuntimeLibrary="2"
+				BasicRuntimeChecks="0"
+				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
+				OpenMP="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
@@ -138,7 +141,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="oclUtils32D.lib OpenCL.lib shrUtils32D.lib OCLpp.lib glew32.lib AntTweakBar.lib"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories="&quot;../$(ConfigurationName)&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\lib\$(PlatformName)\&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\shared\lib&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\lib&quot;;anttweakbar/lib/"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
@@ -201,6 +206,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\offLoader.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ompRasterizer.cpp"
 				>
 			</File>
@@ -244,6 +253,10 @@
 			</File>
 			<File
 				RelativePath=".\nchoosek.h"
+				>
+			</File>
+			<File
+				RelativePath=".\offLoader.h"
 				>
 			</File>
 			<File

@@ -1,9 +1,16 @@
 #ifndef _RASTERIZER_H_
 #define _RASTERIZER_H_
 
+/*
 #define GRID_SIZE_X 180
 #define GRID_SIZE_Y 180
 #define GRID_SIZE_Z 180
+*/
+//*
+#define GRID_SIZE_X 512
+#define GRID_SIZE_Y 512
+#define GRID_SIZE_Z 512
+//*/
 #define VOLUME_SIZE ((GRID_SIZE_X) * (GRID_SIZE_Y) * (GRID_SIZE_Z))
 
 #include <cstdlib>
@@ -17,6 +24,8 @@
 
 class Rasterizer {
 	protected:
+		//static const int N_DIMENSIONS;
+		//static const int K;
 		int    numSimplices;
 		int    s_size;
 		float* simplices;

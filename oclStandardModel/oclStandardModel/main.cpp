@@ -7,6 +7,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstdarg>
+#include <vector>
 
 using namespace std;
 
@@ -42,11 +43,11 @@ TwBar* bar;
 // Shapes scale
 float g_Zoom = 0.8;
 // Shape orientation (stored as a quaternion)
-float g_Rotation[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+float g_Rotation[] = {0.0f, 0.0f, 0.0f, 1.0f};
 // Auto rotate
 int g_AutoRotate = 0;
 int g_RotateTime = 0;
-float g_RotateStart[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+float g_RotateStart[] = {0.0f, 0.0f, 0.0f, 1.0f};
 
 void TW_CALL GetRunOnGpuCB(void *value, void *clientData);
 void TW_CALL SetRunOnGpuCB(const void *value, void *clientData);
@@ -59,15 +60,82 @@ void ConvertQuaternionToMatrix(const float *quat, float *mat);
 void MultiplyQuaternions(const float *q1, const float *q2, float *qout);
 /*********************************************/
 
+#include "offLoader.h"
 int main(int argc, const char* argv[]) {
 	initializeTweakBar();
 
-	const char* inputFile = "../datasets/d1.txt";
-	const bool isHeightMap = true;
+//*
+	TrianglesMesh mesh;
+	mesh.load("neptune.off");
+
+	float minX=99999, minY=99999, minZ=99999;
+	for(int i=0; i<mesh.numTriangles; i++) {
+		if(mesh.triangles[i].p1.x < minX) minX = mesh.triangles[i].p1.x;
+		if(mesh.triangles[i].p1.y < minY) minY = mesh.triangles[i].p1.y;
+		if(mesh.triangles[i].p1.z < minZ) minZ = mesh.triangles[i].p1.z;
+
+		if(mesh.triangles[i].p2.x < minX) minX = mesh.triangles[i].p2.x;
+		if(mesh.triangles[i].p2.y < minY) minY = mesh.triangles[i].p2.y;
+		if(mesh.triangles[i].p2.z < minZ) minZ = mesh.triangles[i].p2.z;
+
+		if(mesh.triangles[i].p3.x < minX) minX = mesh.triangles[i].p3.x;
+		if(mesh.triangles[i].p3.y < minY) minY = mesh.triangles[i].p3.y;
+		if(mesh.triangles[i].p3.z < minZ) minZ = mesh.triangles[i].p3.z;
+	}
+
+	float maxX=-99999, maxY=-99999, maxZ=-99999;
+	for(int i=0; i<mesh.numTriangles; i++) {
+		if(mesh.triangles[i].p1.x > maxX) maxX = mesh.triangles[i].p1.x;
+		if(mesh.triangles[i].p1.y > maxY) maxY = mesh.triangles[i].p1.y;
+		if(mesh.triangles[i].p1.z > maxZ) maxZ = mesh.triangles[i].p1.z;
+
+		if(mesh.triangles[i].p2.x > maxX) maxX = mesh.triangles[i].p2.x;
+		if(mesh.triangles[i].p2.y > maxY) maxY = mesh.triangles[i].p2.y;
+		if(mesh.triangles[i].p2.z > maxZ) maxZ = mesh.triangles[i].p2.z;
+
+		if(mesh.triangles[i].p3.x > maxX) maxX = mesh.triangles[i].p3.x;
+		if(mesh.triangles[i].p3.y > maxY) maxY = mesh.triangles[i].p3.y;
+		if(mesh.triangles[i].p3.z > maxZ) maxZ = mesh.triangles[i].p3.z;
+	}
+
+//	float scaleX = 160/(maxX-minX);
+//	float scaleY = 160/(maxY-minY);
+//	float scaleZ = 160/(maxZ-minZ);
+
+	int dists[3];
+	dists[0] = maxX-minX;
+	dists[1] = maxY-minY;
+	dists[2] = maxZ-minZ;
+	int maxDist = -1, maxDistIdx = -1;
+	for(int i=0; i<3; i++)
+		if(dists[i]>maxDist) {
+			maxDistIdx = i;
+			maxDist = dists[i];
+		}
+
+	//float scale = 300.0/maxDist;
+	float scale = 1;
+
+	FILE* fHands = fopen("neptuneF.txt", "w");
+	fprintf(fHands, "%d\n\n", mesh.numTriangles);
+	for(int i=0; i<mesh.numTriangles; i++) {
+		fprintf(fHands, "%f %f %f\n", scale*(mesh.triangles[i].p1.x-minX), scale*(mesh.triangles[i].p2.x-minX), scale*(mesh.triangles[i].p3.x-minX));
+		fprintf(fHands, "%f %f %f\n", scale*(mesh.triangles[i].p1.y-minY), scale*(mesh.triangles[i].p2.y-minY), scale*(mesh.triangles[i].p3.y-minY));
+		fprintf(fHands, "%f %f %f\n", scale*(mesh.triangles[i].p1.z-minZ), scale*(mesh.triangles[i].p2.z-minZ), scale*(mesh.triangles[i].p3.z-minZ));
+		fprintf(fHands, "\n");
+	}
+	fclose(fHands);
+	system("pause");
+//*/
+
+	//const char* inputFile = "../datasets/d1.txt";
+	//const bool isHeightMap = true;
 	//const char* inputFile = "simplices_in2.txt";
 	//const bool isHeightMap = false;
 	//const char* inputFile = "ds.txt";
 	//const bool isHeightMap = false;
+	const char* inputFile = "neptuneF.txt";
+	const bool isHeightMap = false;
 
 	cout << "Starting CPU version..." << endl;
 	cpuR.readInput(inputFile, isHeightMap);

@@ -1,13 +1,13 @@
 #include "tester.h"
 
-#define PROJ(ln,col) (proj[(ln)*(N+2)+(col)])
+#define PROJ(ln,col) (proj[(ln)*(N_DIMENSIONS+2)+(col)])
 #define SIMP(ln,col) (simplices[s_base+(K+1)*(ln)+(col)])
 
 #include <iostream>
 using namespace std;
 
 void printMatrix(const SMatrix m, int lines, int cols) {
-	if (lines == 0) lines = N+1;
+	if (lines == 0) lines = N_DIMENSIONS+1;
 	if (cols == 0) cols = K+1;
 
 	for (int ln = 0; ln < lines; ln++) {
@@ -25,7 +25,7 @@ bool isZero(float value, float tolerance) {
 
 void columnEchelonForm(SMatrix matrix, int* rank, int* independentCols) {
 	*rank = 0;
-	const int rows = N+1;
+	const int rows = N_DIMENSIONS+1;
 	const int cols = K+1;
 	for (int i=0; i!=cols; ++i) {
 		independentCols[i] = i;
@@ -109,22 +109,22 @@ float determinant(const SMatrix matrix, int size) {
 void getHyperplane(SMatrix points, float* const c, const int* base, const int rank, const int* columns) {
 	// Guarantees the square matrix (it's not square because of the homogeneous coordinates)
 	// The matrix must actually have rank columns and rank+1 rows
-	if (rank != base[N+1]) {
-		cout << "rank != base[N+1], exiting" << endl;
-		cout << "rank: " << rank << " base[N+1]: " << base[N+1] << endl;
+	if (rank != base[N_DIMENSIONS+1]) {
+		cout << "rank != base[N_DIMENSIONS+1], exiting" << endl;
+		cout << "rank: " << rank << " base[N_DIMENSIONS+1]: " << base[N_DIMENSIONS+1] << endl;
 		cout << "base: " << endl;
-		for (int i = 0; i < N+2; i++)
+		for (int i = 0; i < N_DIMENSIONS+2; i++)
 			cout << base[i] << endl;
 		cout << endl << "matrix:" << endl;
 		printMatrix(points);
 		exit(-1);
 	}
 
-	int dimensions[N+1];
+	int dimensions[N_DIMENSIONS+1];
 	int index = 0;
 	int it = 0;
 	// Fills the dimensions array
-	for(int i=0; i<N+1; i++)
+	for(int i=0; i<N_DIMENSIONS+1; i++)
 		c[i] = 0;
 
 	while (index < rank) {
@@ -134,7 +134,7 @@ void getHyperplane(SMatrix points, float* const c, const int* base, const int ra
 		}
 		it++;
 	}
-	dimensions[rank] = N;		// homogeneous coordinates
+	dimensions[rank] = N_DIMENSIONS;		// homogeneous coordinates
 
 	SMatrix m;
 
@@ -185,15 +185,15 @@ void getHyperplane(SMatrix points, float* const c, const int* base, const int ra
 	}
 		//m[rank-1][col] = points[dimensions[rank-1]][col];
 	// last one is b
-	////c[N] = determinant(m, rank);
-	//->certo: c[N] = determinant(m, nCols);
+	////c[N_DIMENSIONS] = determinant(m, rank);
+	//->certo: c[N_DIMENSIONS] = determinant(m, nCols);
 	sig = (rank+1 + nCols+1)&1 ? -1 : 1;
-	c[N] = sig*determinant(m, nCols);
+	c[N_DIMENSIONS] = sig*determinant(m, nCols);
 }
 
 void copyProjectedMatrix(SMatrix src,  SMatrix dst, const int* base) {
 	for (int col = 0; col < K+1; col++) {
-		for (int ln = 0; ln < N+1; ln++) {
+		for (int ln = 0; ln < N_DIMENSIONS+1; ln++) {
 			dst[ln][col] = base[ln]*src[ln][col];
 		}
 	}
@@ -202,25 +202,25 @@ void copyProjectedMatrix(SMatrix src,  SMatrix dst, const int* base) {
 // Calculates the correct constraint for the given half-space
 void halfSpaceConstraints(float* const coefficients) {
 	float b = 0;
-	for (int i = 0; i < N; i++) {
+	for (int i = 0; i < N_DIMENSIONS; i++) {
 		b += fabs(coefficients[i]);
 	}
 	b = b/2;
-	//coefficients[N] += b;
-	coefficients[N] -= b;
+	//coefficients[N_DIMENSIONS] += b;
+	coefficients[N_DIMENSIONS] -= b;
 }
 
 
 void makeStandardOriented(float* const coefficients) {
 	bool hasStdOrientation = true;
-	for(int i=0; i<=N; i++)
+	for(int i=0; i<=N_DIMENSIONS; i++)
 		if(coefficients[i] < -TOLERANCE) {
 			hasStdOrientation = false;
 			break;
 		}
 
 	if(!hasStdOrientation)
-		for(int i=0; i<=N; i++)
+		for(int i=0; i<=N_DIMENSIONS; i++)
 			coefficients[i] = -coefficients[i];
 }
 
@@ -231,11 +231,11 @@ void triangleFaceOrientation(const SMatrix points, const int rank,
 		if(columns[p]==0)
 		{
 			float dot = 0;
-			for(int coord=0; coord<=N; coord++)
+			for(int coord=0; coord<=N_DIMENSIONS; coord++)
 				dot += coefficients[coord]*points[coord][p];
 
 			if(dot > 0) {
-				for(int i=0; i<N+1; i++)
+				for(int i=0; i<N_DIMENSIONS+1; i++)
 					coefficients[i] = -coefficients[i];
 				break;
 			}
@@ -248,9 +248,9 @@ void echelonTest(float* simplices, int* ranks, int* indCols, const int numSimpli
 	//for (int i = 0; i < SIMPLICES; i++) { //temp
 	for (int i = 0; i < numSimplices; i++) {
 		SMatrix e;
-		const int s_base = (N+1)*(K+1)*i;
+		const int s_base = (N_DIMENSIONS+1)*(K+1)*i;
 		//copy matrix
-		for (int j = 0; j < (N+1)*(K+1); j++) {
+		for (int j = 0; j < (N_DIMENSIONS+1)*(K+1); j++) {
 			const int ln = j/(K+1);
 			const int cl = j%(K+1);
 			e[ln][cl]=simplices[s_base+j];
@@ -262,7 +262,7 @@ void echelonTest(float* simplices, int* ranks, int* indCols, const int numSimpli
 		for (int i = 0; i< (K+1); i++)
 			indCols[ic_base+i] = ic[i];
 		//copy back
-		for (int j = 0; j < (N+1)*(K+1); j++) {
+		for (int j = 0; j < (N_DIMENSIONS+1)*(K+1); j++) {
 			const int ln = j/(K+1);
 			const int cl = j%(K+1);
 			simplices[s_base+j]=e[ln][cl];
@@ -281,16 +281,16 @@ void stSimplexCPU(const float* const simplices,
 	//for (int idx = 0; idx < SIMPLICES; idx++) { //temp
 	for (int idx = 0; idx < numSimplices; idx++) {
 		//cout << "simplex: " << idx << endl;
-		const int s_base = (N+1)*(K+1)*idx;
+		const int s_base = (N_DIMENSIONS+1)*(K+1)*idx;
 		const int ic_base = (K+1)*idx;
-		const int c_base = (N+1)*C_PER_SIMPLEX*idx;
+		const int c_base = (N_DIMENSIONS+1)*C_PER_SIMPLEX*idx;
 
 		int c_counter = 0;
 
 		SMatrix echelon, points;
 		
 		// Load matrix into registers
-		for (int i = 0; i < (K+1)*(N+1); i++) {
+		for (int i = 0; i < (K+1)*(N_DIMENSIONS+1); i++) {
 			const int ln = i/(K+1);
 			const int cl = i%(K+1);
 			points[ln][cl] = simplices[idx*(K+1) + ln*numSimplices*(K+1) + cl];
@@ -306,7 +306,7 @@ void stSimplexCPU(const float* const simplices,
 
 		// Iterates through all possible projections
 		for (int d = 0; d < projRows; d++) {
-			const int dim = PROJ(d,N+1);
+			const int dim = PROJ(d,N_DIMENSIONS+1);
 			const int* proj_base = &PROJ(d,0);
 			//Copies the projected matrix to echelon
 			copyProjectedMatrix(points, echelon, proj_base);
@@ -328,7 +328,7 @@ void stSimplexCPU(const float* const simplices,
 				getHyperplane(echelon, c, proj_base, rank, columns);
 				makeStandardOriented(c);
 				halfSpaceConstraints(c);
-				for (int i = 0; i < (N+1); i++) {
+				for (int i = 0; i < (N_DIMENSIONS+1); i++) {
 					constraints[c_base+c_counter] = c[i];
 					c_counter++;
 				}
@@ -349,7 +349,7 @@ void stSimplexCPU(const float* const simplices,
 					getHyperplane(points, c, proj_base, rank-1, columns);
 					triangleFaceOrientation(points, rank, columns, c);
 					halfSpaceConstraints(c);
-					for (int i = 0; i < (N+1); i++) {
+					for (int i = 0; i < (N_DIMENSIONS+1); i++) {
 						constraints[c_base+c_counter] = c[i];
 						c_counter++;
 					}
@@ -359,7 +359,7 @@ void stSimplexCPU(const float* const simplices,
 						getHyperplane(points, c, proj_base, rank-1, columns);
 						triangleFaceOrientation(points, rank, columns, c);
 						halfSpaceConstraints(c);
-						for (int i = 0; i < (N+1); i++) {
+						for (int i = 0; i < (N_DIMENSIONS+1); i++) {
 							constraints[c_base+c_counter] = c[i];
 							c_counter++;
 						}
@@ -370,13 +370,13 @@ void stSimplexCPU(const float* const simplices,
 					float maxC;
 					int coord;
 
-					for(int i=0; i<N; i++)
+					for(int i=0; i<N_DIMENSIONS; i++)
 						if(proj_base[i])
 							coord = i;
 
 					minC = std::numeric_limits<float>::max();
 					maxC = std::numeric_limits<float>::min();
-					for(int p=0; p<N; p++)
+					for(int p=0; p<N_DIMENSIONS; p++)
 					{
 						minC = min(minC, points[coord][p]);
 						maxC = max(maxC, points[coord][p]);
@@ -385,33 +385,33 @@ void stSimplexCPU(const float* const simplices,
 					constraint consMin;
 					constraint consMax;
 
-					for(int i=0; i<N; i++)
+					for(int i=0; i<N_DIMENSIONS; i++)
 					{
 						if(i==coord)
 							consMin[i] = -1;
 						else
 							consMin[i] = 0;
 					}
-					consMin[N] = minC;
+					consMin[N_DIMENSIONS] = minC;
 
-					for(int i=0; i<N; i++)
+					for(int i=0; i<N_DIMENSIONS; i++)
 					{
 						if(i==coord)
 							consMax[i] = 1;
 						else
 							consMax[i] = 0;
 					}
-					consMax[N] = -maxC;
+					consMax[N_DIMENSIONS] = -maxC;
 
 					halfSpaceConstraints(consMin);
 					halfSpaceConstraints(consMax);
 
-					for (int i = 0; i < (N+1); i++) {
+					for (int i = 0; i < (N_DIMENSIONS+1); i++) {
 						constraints[c_base+c_counter] = consMin[i];
 						c_counter++;
 					}
 
-					for (int i = 0; i < (N+1); i++) {
+					for (int i = 0; i < (N_DIMENSIONS+1); i++) {
 						constraints[c_base+c_counter] = consMax[i];
 						c_counter++;
 					}
@@ -421,9 +421,9 @@ void stSimplexCPU(const float* const simplices,
 
 		float minCoord[] = {9999, 9999, 9999};
 		float maxCoord[] = {-9999, -9999, -9999};
-		for(int coord=0; coord<N; coord++)
+		for(int coord=0; coord<N_DIMENSIONS; coord++)
 		{
-			for(int p=0; p<N; p++)
+			for(int p=0; p<N_DIMENSIONS; p++)
 			{
 				minCoord[coord] = min(minCoord[coord], points[coord][p]);
 				maxCoord[coord] = max(maxCoord[coord], points[coord][p]);
@@ -440,14 +440,14 @@ void stSimplexCPU(const float* const simplices,
 					float discreteP[] = {vX, vY, vZ};
 
 					bool raster = true;
-					for(int i=0; i < c_counter/(N+1); i++)
+					for(int i=0; i < c_counter/(N_DIMENSIONS+1); i++)
 					{
 						float sum = 0;
-						for(int coord=0; coord<N; coord++) {
-							sum += discreteP[coord] * constraints[c_base + i*(N+1) + coord];
+						for(int coord=0; coord<N_DIMENSIONS; coord++) {
+							sum += discreteP[coord] * constraints[c_base + i*(N_DIMENSIONS+1) + coord];
 						}
 
-						if(!(sum <= -constraints[c_base + i*(N+1) + N])) {
+						if(!(sum <= -constraints[c_base + i*(N_DIMENSIONS+1) + N_DIMENSIONS])) {
 							raster = false;
 							break;
 						}
@@ -464,21 +464,21 @@ void stSimplexCPU(const float* const simplices,
 //void hyperplaneTest(float* points, float* constraints, const int* base, const int rank, const int* columns) {
 //	for (int i = 0; i < SIMPLICES; i++) {
 //		SMatrix e;
-//		const int s_base = (N+1)*(K+1)*i;
+//		const int s_base = (N_DIMENSIONS+1)*(K+1)*i;
 //		//copy matrix
-//		for (int j = 0; j < (N+1)*(K+1); j++) {
+//		for (int j = 0; j < (N_DIMENSIONS+1)*(K+1); j++) {
 //			const int ln = j/(K+1);
 //			const int cl = j%(K+1);
 //			e[ln][cl]=points[s_base+j];
 //		}
 //		// hyperplane
-//		float c[N+1];
+//		float c[N_DIMENSIONS+1];
 //		getHyperplane(e, c, base, rank, columns);
-//		const int c_base = i*(N+1);
-//		for (int i=0;i<(N+1);i++)
+//		const int c_base = i*(N_DIMENSIONS+1);
+//		for (int i=0;i<(N_DIMENSIONS+1);i++)
 //			constraints[c_base+i] = c[i];
 //		//copy back
-//		for (int j = 0; j < (N+1)*(K+1); j++) {
+//		for (int j = 0; j < (N_DIMENSIONS+1)*(K+1); j++) {
 //			const int ln = j/(K+1);
 //			const int cl = j%(K+1);
 //			points[s_base+j]=e[ln][cl];
@@ -489,9 +489,9 @@ void stSimplexCPU(const float* const simplices,
 //void fullTest(float* simplices, int* ranks, int* indCols, float* constraints, const int* base) {
 //	for (int i = 0; i < SIMPLICES; i++) {
 //		SMatrix _e;
-//		const int s_base = (N+1)*(K+1)*i;
+//		const int s_base = (N_DIMENSIONS+1)*(K+1)*i;
 //		//copy matrix
-//		for (int j = 0; j < (N+1)*(K+1); j++) {
+//		for (int j = 0; j < (N_DIMENSIONS+1)*(K+1); j++) {
 //			const int ln = j/(K+1);
 //			const int cl = j%(K+1);
 //			_e[ln][cl]=simplices[s_base+j];
@@ -507,16 +507,16 @@ void stSimplexCPU(const float* const simplices,
 //			indCols[ic_base+i] = ic[i];
 //		
 //		// hyperplane
-//		float c[N+1];
+//		float c[N_DIMENSIONS+1];
 //		int columns[K+1];
 //		for (int l = 0; l < K+1; l++) columns[l] = 1;
 //		getHyperplane(e, c, base, ranks[i], columns);
-//		const int c_base = i*(N+1);
-//		for (int i=0;i<(N+1);i++)
+//		const int c_base = i*(N_DIMENSIONS+1);
+//		for (int i=0;i<(N_DIMENSIONS+1);i++)
 //			constraints[c_base+i] = c[i];
 //
 //		//copy back
-//		for (int j = 0; j < (N+1)*(K+1); j++) {
+//		for (int j = 0; j < (N_DIMENSIONS+1)*(K+1); j++) {
 //			const int ln = j/(K+1);
 //			const int cl = j%(K+1);
 //			simplices[s_base+j]=e[ln][cl];

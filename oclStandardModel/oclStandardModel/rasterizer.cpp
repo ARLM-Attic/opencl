@@ -2,10 +2,13 @@
 
 using namespace std;
 
+//Rasterizer::N_DIMENSIONS = 3;
+//Rasterizer::K = 2;
+
 Rasterizer::Rasterizer() {
-	const int _m_ = (N < K+1)? (N) : (K+1);
-	nckv = nchoosekVector(N, _m_, &nckRows);
-	nck_size = (N+2)*nckRows*sizeof(int);
+	const int _m_ = (N_DIMENSIONS < K+1)? (N_DIMENSIONS) : (K+1);
+	nckv = nchoosekVector(N_DIMENSIONS, _m_, &nckRows);
+	nck_size = (N_DIMENSIONS+2)*nckRows*sizeof(int);
 	constraints = NULL;
 }
 
@@ -33,7 +36,7 @@ float* Rasterizer::loadDataset(const char* path, int& num_simplices) {
 	df.close();
 
 	num_simplices = sx*sy*2 ;
-	const int size = num_simplices  * (K+1) * (N+1); // x1, x2, x3, 1
+	const int size = num_simplices  * (K+1) * (N_DIMENSIONS+1); // x1, x2, x3, 1
 	float* simplices = new float[size];
 
 	for (int i=0; i<size; i++)
@@ -99,13 +102,13 @@ void Rasterizer::clearVolume() {
 
 void Rasterizer::fillVolume() {
 	for(int idx = 0; idx < numSimplices; idx++) {
-		const int c_base = (N+1)*C_PER_SIMPLEX*idx;
+		const int c_base = (N_DIMENSIONS+1)*C_PER_SIMPLEX*idx;
 
-		int c_counter = C_PER_SIMPLEX*(N+1);
+		int c_counter = C_PER_SIMPLEX*(N_DIMENSIONS+1);
 
 		SMatrix points;
 		// Load matrix into registers
-		for (int i = 0; i < (K+1)*(N+1); i++) {
+		for (int i = 0; i < (K+1)*(N_DIMENSIONS+1); i++) {
 			const int ln = i/(K+1);
 			const int cl = i%(K+1);
 			points[ln][cl] = simplices[idx*(K+1) + ln*numSimplices*(K+1) + cl];
@@ -113,9 +116,9 @@ void Rasterizer::fillVolume() {
 
 		float minCoord[] = {9999, 9999, 9999};
 		float maxCoord[] = {-9999, -9999, -9999};
-		for(int coord=0; coord<N; coord++)
+		for(int coord=0; coord<N_DIMENSIONS; coord++)
 		{
-			for(int p=0; p<N; p++)
+			for(int p=0; p<N_DIMENSIONS; p++)
 			{
 				minCoord[coord] = min(minCoord[coord], points[coord][p]);
 				maxCoord[coord] = max(maxCoord[coord], points[coord][p]);
@@ -132,16 +135,16 @@ void Rasterizer::fillVolume() {
 					float discreteP[] = {vX, vY, vZ};
 
 					bool raster = true;
-					for(int i=0; i < c_counter/(N+1); i++)
+					for(int i=0; i < c_counter/(N_DIMENSIONS+1); i++)
 					{
 						float soma = 0;
-						for(int coord=0; coord<N; coord++) {
-							soma += discreteP[coord] * constraints[c_base + i*(N+1) + coord];
+						for(int coord=0; coord<N_DIMENSIONS; coord++) {
+							soma += discreteP[coord] * constraints[c_base + i*(N_DIMENSIONS+1) + coord];
 						}
 
-						//if(vX==0 && vY==0 && vZ==0) cout << "fv: " << -constraints[c_base + i*(N+1) + N] << endl;
+						//if(vX==0 && vY==0 && vZ==0) cout << "fv: " << -constraints[c_base + i*(N_DIMENSIONS+1) + N_DIMENSIONS] << endl;
 
-						if(!(soma <= -constraints[c_base + i*(N+1) + N])) {
+						if(!(soma <= -constraints[c_base + i*(N_DIMENSIONS+1) + N_DIMENSIONS])) {
 							raster = false;
 							break;
 						}
@@ -178,8 +181,8 @@ void Rasterizer::writeVolume(const char* filename) {
 
 void Rasterizer::readHeightMap(const char* filename) {
 	simplices = loadDataset(filename, numSimplices);
-	c_size = (N+1)*numSimplices*C_PER_SIMPLEX;
-	s_size = (N+1)*(K+1)*numSimplices;
+	c_size = (N_DIMENSIONS+1)*numSimplices*C_PER_SIMPLEX;
+	s_size = (N_DIMENSIONS+1)*(K+1)*numSimplices;
 }
 
 void Rasterizer::readTriangles(const char* filename) {
@@ -188,17 +191,17 @@ void Rasterizer::readTriangles(const char* filename) {
 
 	cout << "Using " << filename << " simplices..." << endl;
 	fscanf(splxFile, "%d", &numSimplices);
-	c_size = (N+1)*numSimplices*C_PER_SIMPLEX;
-	s_size = (N+1)*(K+1)*numSimplices;
+	c_size = (N_DIMENSIONS+1)*numSimplices*C_PER_SIMPLEX;
+	s_size = (N_DIMENSIONS+1)*(K+1)*numSimplices;
 	simplices = new float[s_size];
 	//Read the file
 	//Simplex s, point p, coordinate dim
 	for (int s=0; s<numSimplices; s++) {
-		for(int dim=0; dim<N; dim++) {			
+		for(int dim=0; dim<N_DIMENSIONS; dim++) {			
 			for(int p=0; p<K+1; p++) {
 				fscanf(splxFile, "%f ", &simplices[dim*(numSimplices)*(K+1) + s*(K+1) + p]);
 				//homogenous coordinates
-				simplices[N*(numSimplices)*(K+1) + s*(K+1) + p] = 1;
+				simplices[N_DIMENSIONS*(numSimplices)*(K+1) + s*(K+1) + p] = 1;
 			}
 		}
 	}
@@ -218,7 +221,7 @@ void Rasterizer::initializeConstraints() {
 
 	constraints = new float[c_size];
 	// Initialize the constraints so that evaluation is always true (no constraint)
-	for (int c = 0; c < numSimplices*C_PER_SIMPLEX*(N+1); c++) {
+	for (int c = 0; c < numSimplices*C_PER_SIMPLEX*(N_DIMENSIONS+1); c++) {
 		constraints[c] = 0;
 	}
 }
