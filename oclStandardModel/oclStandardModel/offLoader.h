@@ -13,9 +13,7 @@ typedef struct {
 } PointXYZ;
 
 typedef struct {
-	PointXYZ p1;
-	PointXYZ p2;
-	PointXYZ p3;
+	PointXYZ point[3];
 } Triangle;
 
 class TrianglesMesh {
@@ -25,5 +23,7 @@ class TrianglesMesh {
 
 		void load(const char* filename);
 };
+
+void offToTriangles(const char* offFilename, const char* outputFilename, float scale);
 
 #endif

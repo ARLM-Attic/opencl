@@ -1,12 +1,12 @@
 #ifndef _RASTERIZER_H_
 #define _RASTERIZER_H_
 
-/*
+//*
 #define GRID_SIZE_X 180
 #define GRID_SIZE_Y 180
 #define GRID_SIZE_Z 180
-*/
-//*
+//*/
+/*
 #define GRID_SIZE_X 512
 #define GRID_SIZE_Y 512
 #define GRID_SIZE_Z 512

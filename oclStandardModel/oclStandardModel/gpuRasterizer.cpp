@@ -55,4 +55,5 @@ void GPU_Rasterizer::stSimplex() {
 
 void GPU_Rasterizer::readResults() {
 	constraints_d->read(constraints, c_size*sizeof(float));
+	cl.finish();
 }
