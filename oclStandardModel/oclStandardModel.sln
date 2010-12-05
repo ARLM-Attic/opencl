@@ -1,9 +1,12 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oclStandardModel", "oclStandardModel\oclStandardModel.vcxproj", "{84448AB5-C9F2-4271-8FF9-2D0465D898F3}"
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oclStandardModel", "oclStandardModel\oclStandardModel.vcproj", "{84448AB5-C9F2-4271-8FF9-2D0465D898F3}"
+	ProjectSection(ProjectDependencies) = postProject
+		{11997928-F85E-4D30-B90C-8B663D9F42EF} = {11997928-F85E-4D30-B90C-8B663D9F42EF}
+	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OCLpp", "OCLpp\OCLpp.vcxproj", "{11997928-F85E-4D30-B90C-8B663D9F42EF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OCLpp", "OCLpp\OCLpp.vcproj", "{11997928-F85E-4D30-B90C-8B663D9F42EF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
