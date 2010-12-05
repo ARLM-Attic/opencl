@@ -81,6 +81,8 @@ int main(int argc, const char* argv[]) {
 	//			hand.txt false
 	//			neptune.txt false
 
+	openFile("neptune.txt", false);
+
 	InitGL(argc, argv);
 	glutMainLoop();
 	return 0;
