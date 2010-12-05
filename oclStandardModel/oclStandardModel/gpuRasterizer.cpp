@@ -1,6 +1,7 @@
 #include "gpuRasterizer.h"
 
 using namespace ocl;
+using namespace std;
 
 GPU_Rasterizer::GPU_Rasterizer() : Rasterizer() {
 	nck_d = cl.createBuffer(nck_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nckv);
@@ -34,7 +35,7 @@ void GPU_Rasterizer::clearVolume() {
 void GPU_Rasterizer::buildProgram() {
 	vector<string> files;
 	files.push_back("stSimplex.h");
-	files.push_back("stSimplex2.cl");
+	files.push_back("stSimplex.cl");
 	Program *program = cl.createProgram(files);
 	program->build(true);
 

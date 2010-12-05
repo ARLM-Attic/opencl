@@ -1,13 +1,21 @@
-#include <AntTweakBar.h>
-#include "cpuRasterizer.h"
-#include "gpuRasterizer.h"
-#include "ompRasterizer.h"
+#define _USE_GPU_
 
-#include <GL/glut.h>
 #include <cstring>
 #include <cstdlib>
 #include <cstdarg>
 #include <vector>
+#include <GL/glut.h>
+
+#include "AntTweakBar.h"
+#include "tweakAux.h"
+
+#include "cpuRasterizer.h"
+#include "ompRasterizer.h"
+#ifdef _USE_GPU_
+#include "gpuRasterizer.h"
+#endif
+
+#include "offLoader.h"
 
 using namespace std;
 
@@ -16,7 +24,6 @@ vector<float> points;
 vector<float> axis;
 
 unsigned int width = 800, height = 600;
-
 unsigned int iGLUTWindowHandle;
 
 void render();
@@ -24,18 +31,9 @@ void render();
 void initDrawArray();
 void InitGL(int argc, const char** argv);
 void DisplayGL();
-void KeyboardGL(unsigned char key, int x, int y);
 void Reshape(int w, int h);
-void motion(int x, int y);
-void mouseFunction(int button, int state, int x, int y);
 void Idle(void);
 /*********************************************/
-
-CPU_Rasterizer cpuR;
-GPU_Rasterizer gpuR;
-OMP_Rasterizer ompR;
-bool useGpuResults = false;
-
 /* TweakBar **********************************/
 void initializeTweakBar();
 
@@ -48,6 +46,9 @@ float g_Rotation[] = {0.0f, 0.0f, 0.0f, 1.0f};
 int g_AutoRotate = 0;
 int g_RotateTime = 0;
 float g_RotateStart[] = {0.0f, 0.0f, 0.0f, 1.0f};
+char* g_Filename = NULL;
+bool g_UseGpuResults = false;
+bool g_IsHeightMap = false;
 
 void TW_CALL GetRunOnGpuCB(void *value, void *clientData);
 void TW_CALL SetRunOnGpuCB(const void *value, void *clientData);
@@ -55,29 +56,38 @@ void TW_CALL SetRunOnGpuCB(const void *value, void *clientData);
 void TW_CALL SetAutoRotateCB(const void *value, void *clientData);
 void TW_CALL GetAutoRotateCB(void *value, void *clientData);
 
-void SetQuaternionFromAxisAngle(const float *axis, float angle, float *quat);
-void ConvertQuaternionToMatrix(const float *quat, float *mat);
-void MultiplyQuaternions(const float *q1, const float *q2, float *qout);
+void TW_CALL OpenFileCB(void *clientData);
+
+void TW_CALL GetIsHeightMapCB(void *value, void *clientData);
+void TW_CALL SetIsHeightMapCB(const void *value, void *clientData);
+/*********************************************/
+/* Rasterizer ********************************/
+CPU_Rasterizer cpuR;
+OMP_Rasterizer ompR;
+#ifdef _USE_GPU_
+GPU_Rasterizer gpuR;
+#endif
+
+void openFile(const char* inputFile, const bool isHeightMap);
 /*********************************************/
 
-#include "offLoader.h"
 int main(int argc, const char* argv[]) {
 	initializeTweakBar();
 
-/*
-	offToTriangles("neptune.off", "neptuneF.txt", 160);
-//*/
+	// offToTriangles("neptune.off", "neptuneF.txt", 160);
 
-	const char* inputFile = "../datasets/d1.txt";
-	const bool isHeightMap = true;
-	//const char* inputFile = "simplices_in2.txt";
-	//const bool isHeightMap = false;
-	//const char* inputFile = "ds.txt";
-	//const bool isHeightMap = false;
-	//const char* inputFile = "neptuneF.txt";
-	//const bool isHeightMap = false;
+	//datasets: ../datasets/d1.txt true
+	//			hand.txt false
+	//			neptune.txt false
 
-	cout << "Starting CPU version..." << endl;
+	InitGL(argc, argv);
+	glutMainLoop();
+	return 0;
+}
+
+void openFile(const char* inputFile, const bool isHeightMap) {
+	cout << "Opening " << inputFile << "..." << endl;
+
 	cpuR.readInput(inputFile, isHeightMap);
 	cpuR.initializeConstraints();
 	cpuR.clearVolume();
@@ -85,9 +95,8 @@ int main(int argc, const char* argv[]) {
 	cpuR.stSimplex();
 	time = clock() - time;
 	cpuR.fillVolume();
-	cout << "CPU version finished! " << time << endl;
+	cout << "CPU version took " << time << "ms!" << endl;
 
-	cout << "Starting OMP version..." << endl;
 	ompR.readInput(inputFile, isHeightMap);
 	ompR.initializeConstraints();
 	ompR.clearVolume();
@@ -95,9 +104,9 @@ int main(int argc, const char* argv[]) {
 	ompR.stSimplex();
 	time = clock() - time;
 	ompR.fillVolume();
-	cout << "OMP version finished! " << time << endl;
+	cout << "OpenMP version took " << time << "ms!" << endl;
 
-	cout << "Starting GPU version..." << endl;
+#ifdef _USE_GPU_
 	gpuR.readInput(inputFile, isHeightMap);
 	gpuR.initializeConstraints();
 	gpuR.clearVolume();
@@ -108,19 +117,17 @@ int main(int argc, const char* argv[]) {
 	gpuR.readResults();
 	time = clock() - time;
 	gpuR.fillVolume();
-	cout << "GPU version finished! " << time << endl;
+	cout << "GPU version took " << time << "ms!" << endl;
+#endif
 
-	InitGL(argc, argv);
 	initDrawArray();
-	glutMainLoop();
-	return 0;
 }
 
 void initializeTweakBar() {
 	TwInit(TW_OPENGL, NULL);
 
 	bar = TwNewBar("Config");
-	TwDefine(" Config position='550 415' size='225 160' color='150 150 150' ");
+	TwDefine(" Config position='550 345' size='225 230' color='150 150 150' ");
 
 	TwAddVarRW(bar, "Zoom", TW_TYPE_FLOAT, &g_Zoom, 
 		" min=0.01 max=2.5 step=0.01 keyIncr=z keyDecr=Z help='Scale the object (1=original size).' ");
@@ -129,10 +136,20 @@ void initializeTweakBar() {
 	// Add callback to toggle auto-rotate mode (callback functions are defined above).
 	TwAddVarCB(bar, "AutoRotate", TW_TYPE_BOOL32, SetAutoRotateCB, GetAutoRotateCB, NULL, 
 		" label='Auto-rotate' key=space help='Toggle auto-rotate mode.' ");
-	TwAddVarCB(bar, "RunOnGPU", TW_TYPE_BOOL8, SetRunOnGpuCB, GetRunOnGpuCB, NULL, 
+	TwAddVarCB(bar, "RunOnGPU", TW_TYPE_BOOLCPP, SetRunOnGpuCB, GetRunOnGpuCB, NULL, 
 		" label='GPU' key=c help='Toggle run mode.' ");
-}
 
+	TwCopyCDStringToClientFunc(CopyCDStringToClient);
+    TwAddVarRW(bar, "Filename", TW_TYPE_CDSTRING, &g_Filename, 
+               " label='Filename' group=OpenFile help='Mesh to be rasterized.' ");
+	TwAddVarCB(bar, "IsHeightMap", TW_TYPE_BOOLCPP, SetIsHeightMapCB, GetIsHeightMapCB, NULL, 
+		" label='HeightMap' group=OpenFile key=h true='TRUE' false='FALSE' help='Toggle input type.' ");
+    // Add a button to create a new bar using the title
+    TwAddButton(bar, "OpenFileButton", OpenFileCB, &g_Filename, 
+                " label='Open' group=OpenFile key=o help='Open file.' ");
+    // Set the group label & separator
+    TwDefine(" Config/OpenFile label='Open a File' help='This example demonstates different use of std::string variables.' ");
+}
 
 void InitGL(int argc, const char **argv)
 {
@@ -142,30 +159,19 @@ void InitGL(int argc, const char **argv)
 	glutInitWindowPosition (glutGet(GLUT_SCREEN_WIDTH)/2 - width/2, 
 		glutGet(GLUT_SCREEN_HEIGHT)/2 - height/2);
 	glutInitWindowSize(width, height);
-	iGLUTWindowHandle = glutCreateWindow("OpenCL volume rendering");
+	iGLUTWindowHandle = glutCreateWindow("oclStandardModel Rasterizer");
 
 	// register glut callbacks
 	glutDisplayFunc(DisplayGL);
 	glutReshapeFunc(Reshape);
 	glutIdleFunc(Idle);
 
-	glutKeyboardFunc(KeyboardGL);
-	//glutMouseFunc(mouseFunction);
-	//glutMotionFunc(motion);
-
-	// Set GLUT event callbacks
-	// - Directly redirect GLUT mouse button events to AntTweakBar
+	// Set GLUT event callbacks to AntTweakBar
 	glutMouseFunc((GLUTmousebuttonfun)TwEventMouseButtonGLUT);
-	// - Directly redirect GLUT mouse motion events to AntTweakBar
 	glutMotionFunc((GLUTmousemotionfun)TwEventMouseMotionGLUT);
-	// - Directly redirect GLUT mouse "passive" motion events to AntTweakBar (same as MouseMotion)
 	glutPassiveMotionFunc((GLUTmousemotionfun)TwEventMouseMotionGLUT);
-	// - Directly redirect GLUT key events to AntTweakBar
 	glutKeyboardFunc((GLUTkeyboardfun)TwEventKeyboardGLUT);
-	// - Directly redirect GLUT special key events to AntTweakBar
 	glutSpecialFunc((GLUTspecialfun)TwEventSpecialGLUT);
-	// - Send 'glutGetModifers' function pointer to AntTweakBar;
-	//   required because the GLUT key event functions do not report key modifiers states.
 	TwGLUTModifiersFunc(glutGetModifiers);
 }
 
@@ -176,7 +182,11 @@ void initDrawArray()
 	for(int y=0; y<GRID_SIZE_Y; y++)
 		for(int z=0; z<GRID_SIZE_Z; z++)
 			for(int x=0; x<GRID_SIZE_X; x++)
-				if((useGpuResults && gpuR.volume[x][y][z]) || (!useGpuResults && cpuR.volume[x][y][z]))
+				if(
+#ifdef _USE_GPU_
+					(g_UseGpuResults && gpuR.volume[x][y][z]) || 
+#endif
+					(!g_UseGpuResults && cpuR.volume[x][y][z]))
 				{
 					points.push_back((x+0.5)*cubeSize);
 					points.push_back((z+0.5)*cubeSize);
@@ -266,7 +276,7 @@ void DisplayGL()
 
 	glColor3f(0.9, 0.9, 0.9);
 	const char* label;
-	if(useGpuResults) label = "GPU Rasterizer";
+	if(g_UseGpuResults) label = "GPU Rasterizer";
 	else label = "CPU Rasterizer";
 	drawText(0.6, 0.9, 0, GLUT_BITMAP_HELVETICA_12, label);
 
@@ -276,28 +286,6 @@ void DisplayGL()
 	glutPostRedisplay();
 }
 
-// Keyboard event handler callback
-//*****************************************************************************
-void KeyboardGL(unsigned char key, int /*x*/, int /*y*/)
-{
-	if(key == 'C' || key == 'c') {
-		useGpuResults = !useGpuResults;
-		initDrawArray();
-	}
-    glutPostRedisplay();
-}
-
-void mouseFunction(int button, int state, int x, int y)
-{
-
-	glutPostRedisplay();
-}
-
-void motion(int x, int y)
-{
-
-	glutPostRedisplay();
-}
 
 void Reshape(int x, int y)
 {
@@ -319,26 +307,25 @@ void Reshape(int x, int y)
 //*****************************************************************************
 void Idle()
 {
-
     glutPostRedisplay();
 }
 
-
-
-
-
-
-
 void TW_CALL GetRunOnGpuCB(void *value, void *clientData) {
-	*(bool *)(value) = useGpuResults;
+	*(bool *)(value) = g_UseGpuResults;
 }
 
-void TW_CALL SetRunOnGpuCB(const void *value, void *clientData)
-{
-	useGpuResults = *(bool *)(value);
+void TW_CALL SetRunOnGpuCB(const void *value, void *clientData) {
+	g_UseGpuResults = *(bool *)(value);
 	initDrawArray();
 }
 
+void TW_CALL GetIsHeightMapCB(void *value, void *clientData) {
+	*(bool *)(value) = g_IsHeightMap;
+}
+
+void TW_CALL SetIsHeightMapCB(const void *value, void *clientData) {
+	g_IsHeightMap = *(bool *)(value);
+}
 
 
 //  Callback function called when the 'AutoRotate' variable value of the tweak bar has changed
@@ -372,64 +359,11 @@ void TW_CALL GetAutoRotateCB(void *value, void *clientData)
 	*(int *)(value) = g_AutoRotate; // copy g_AutoRotate to value
 }
 
-
-////////////////////////////////////////////////
-//   TWEAK BAR AUX FUNCTIONS (QUATERNIONS)    //
-////////////////////////////////////////////////
-
-// Routine to set a quaternion from a rotation axis and angle
-// ( input axis = float[3] angle = float  output: quat = float[4] )
-void SetQuaternionFromAxisAngle(const float *axis, float angle, float *quat)
+// Callback function to create a bar with a given title
+void TW_CALL OpenFileCB(void *clientData)
 {
-	float sina2, norm;
-	sina2 = (float)sin(0.5f * angle);
-	norm = (float)sqrt(axis[0]*axis[0] + axis[1]*axis[1] + axis[2]*axis[2]);
-	quat[0] = sina2 * axis[0] / norm;
-	quat[1] = sina2 * axis[1] / norm;
-	quat[2] = sina2 * axis[2] / norm;
-	quat[3] = (float)cos(0.5f * angle);
-
-}
-
-
-// Routine to convert a quaternion to a 4x4 matrix
-// ( input: quat = float[4]  output: mat = float[4*4] )
-void ConvertQuaternionToMatrix(const float *quat, float *mat)
-{
-	float yy2 = 2.0f * quat[1] * quat[1];
-	float xy2 = 2.0f * quat[0] * quat[1];
-	float xz2 = 2.0f * quat[0] * quat[2];
-	float yz2 = 2.0f * quat[1] * quat[2];
-	float zz2 = 2.0f * quat[2] * quat[2];
-	float wz2 = 2.0f * quat[3] * quat[2];
-	float wy2 = 2.0f * quat[3] * quat[1];
-	float wx2 = 2.0f * quat[3] * quat[0];
-	float xx2 = 2.0f * quat[0] * quat[0];
-	mat[0*4+0] = - yy2 - zz2 + 1.0f;
-	mat[0*4+1] = xy2 + wz2;
-	mat[0*4+2] = xz2 - wy2;
-	mat[0*4+3] = 0;
-	mat[1*4+0] = xy2 - wz2;
-	mat[1*4+1] = - xx2 - zz2 + 1.0f;
-	mat[1*4+2] = yz2 + wx2;
-	mat[1*4+3] = 0;
-	mat[2*4+0] = xz2 + wy2;
-	mat[2*4+1] = yz2 - wx2;
-	mat[2*4+2] = - xx2 - yy2 + 1.0f;
-	mat[2*4+3] = 0;
-	mat[3*4+0] = mat[3*4+1] = mat[3*4+2] = 0;
-	mat[3*4+3] = 1;
-}
-
-
-// Routine to multiply 2 quaternions (ie, compose rotations)
-// ( input q1 = float[4] q2 = float[4]  output: qout = float[4] )
-void MultiplyQuaternions(const float *q1, const float *q2, float *qout)
-{
-	float qr[4];
-	qr[0] = q1[3]*q2[0] + q1[0]*q2[3] + q1[1]*q2[2] - q1[2]*q2[1];
-	qr[1] = q1[3]*q2[1] + q1[1]*q2[3] + q1[2]*q2[0] - q1[0]*q2[2];
-	qr[2] = q1[3]*q2[2] + q1[2]*q2[3] + q1[0]*q2[1] - q1[1]*q2[0];
-	qr[3]  = q1[3]*q2[3] - (q1[0]*q2[0] + q1[1]*q2[1] + q1[2]*q2[2]);
-	qout[0] = qr[0]; qout[1] = qr[1]; qout[2] = qr[2]; qout[3] = qr[3];
+    char **filename = (char **)(clientData);
+	
+	if(*filename != NULL)
+		openFile(*filename, g_IsHeightMap);
 }

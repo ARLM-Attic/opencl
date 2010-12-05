@@ -6,6 +6,7 @@
 #include "OpenCL.h"
 #include <oclUtils.h>
 
+#include <vector>
 
 class GPU_Rasterizer : public Rasterizer {
 	protected:
