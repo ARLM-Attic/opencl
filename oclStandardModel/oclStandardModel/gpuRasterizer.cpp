@@ -35,7 +35,7 @@ void GPU_Rasterizer::clearVolume() {
 void GPU_Rasterizer::buildProgram() {
 	vector<string> files;
 	files.push_back("stSimplex.h");
-	files.push_back("stSimplex.cl");
+	files.push_back("stSimplex2.cl");
 	Program *program = cl.createProgram(files);
 	program->build(true);
 

@@ -222,6 +222,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\stSimplex2.cl"
+				>
+			</File>
+			<File
 				RelativePath=".\tester.cpp"
 				>
 			</File>
