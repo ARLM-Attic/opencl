@@ -81,7 +81,17 @@ int main(int argc, const char* argv[]) {
 	//			hand.txt false
 	//			neptune.txt false
 
-	openFile("neptune.txt", false);
+	char* inputFile;
+	bool inputIsHeightMap = false;
+
+	if(argc >= 4)
+		inputIsHeightMap = !strcmp(argv[3], "--heightmap");
+
+	if(argc >= 3)
+		if(!strcmp(argv[1], "-f")) {
+			inputFile = (char*) argv[2];
+			openFile(inputFile, inputIsHeightMap);
+		}
 
 	InitGL(argc, argv);
 	glutMainLoop();
@@ -238,14 +248,16 @@ void render()
 			glEnd();
 		glPopMatrix();
 
+	if(points.size() > 0) {
 		glPushMatrix();
-			glColor3f(0.95, 0.2, 0.2);
-			glEnableClientState(GL_VERTEX_ARRAY);
-			glVertexPointer(3, GL_FLOAT, 0, &points[0]);
-			glDrawArrays(GL_POINTS, 0, points.size()/3);
-			glDisableClientState(GL_VERTEX_ARRAY);
+				glColor3f(0.95, 0.2, 0.2);
+				glEnableClientState(GL_VERTEX_ARRAY);
+				glVertexPointer(3, GL_FLOAT, 0, &points[0]);
+				glDrawArrays(GL_POINTS, 0, points.size()/3);
+				glDisableClientState(GL_VERTEX_ARRAY);
+			glPopMatrix();
 		glPopMatrix();
-	glPopMatrix();
+	}
 }
 
 // Display callback for GLUT main loop
