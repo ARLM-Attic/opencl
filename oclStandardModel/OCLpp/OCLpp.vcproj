@@ -108,7 +108,7 @@
 				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\inc&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\shared\inc&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
-				RuntimeLibrary="2"
+				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
