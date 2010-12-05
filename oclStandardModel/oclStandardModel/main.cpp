@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cstdarg>
 #include <vector>
-#include <GL/glut.h>
 
 #include "AntTweakBar.h"
 #include "tweakAux.h"
@@ -14,6 +13,8 @@
 #ifdef _USE_GPU_
 #include "gpuRasterizer.h"
 #endif
+
+#include <GL/glut.h>
 
 #include "offLoader.h"
 

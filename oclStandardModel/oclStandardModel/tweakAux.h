@@ -1,4 +1,5 @@
 #include <AntTweakBar.h>
+#include <cmath>
 
 void TW_CALL CopyCDStringToClient(char **destPtr, const char *src);
 

@@ -218,15 +218,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\render.cl"
-				>
-			</File>
-			<File
 				RelativePath=".\stSimplex.cl"
-				>
-			</File>
-			<File
-				RelativePath=".\stSimplex2.cl"
 				>
 			</File>
 			<File
@@ -234,7 +226,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\vector_add.cl"
+				RelativePath=".\tweakAux.cpp"
 				>
 			</File>
 		</Filter>
@@ -273,6 +265,10 @@
 			</File>
 			<File
 				RelativePath=".\tester.h"
+				>
+			</File>
+			<File
+				RelativePath=".\tweakAux.h"
 				>
 			</File>
 		</Filter>
