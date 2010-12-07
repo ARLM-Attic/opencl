@@ -29,7 +29,7 @@ unsigned int iGLUTWindowHandle;
 
 void render();
 
-void initDrawArray();
+void initDrawArray(const Rasterizer& rasterizer);
 void InitGL(int argc, const char** argv);
 void DisplayGL();
 void Reshape(int w, int h);
@@ -51,8 +51,17 @@ char* g_Filename = NULL;
 bool g_UseGpuResults = false;
 bool g_IsHeightMap = false;
 
-void TW_CALL GetRunOnGpuCB(void *value, void *clientData);
-void TW_CALL SetRunOnGpuCB(const void *value, void *clientData);
+typedef enum {
+	CPU_RESULTS,
+	OMP_RESULTS,
+	GPU_RESULTS
+} RasterizerVersion;
+TwEnumVal resultsEV[] = {{CPU_RESULTS, "CPU"}, {OMP_RESULTS, "OpenMP"}, {GPU_RESULTS, "GPU"}};
+TwType resultsType;
+RasterizerVersion version = CPU_RESULTS;
+
+void TW_CALL GetVersionCB(void *value, void *clientData);
+void TW_CALL SetVersionCB(const void *value, void *clientData);
 
 void TW_CALL SetAutoRotateCB(const void *value, void *clientData);
 void TW_CALL GetAutoRotateCB(void *value, void *clientData);
@@ -93,13 +102,26 @@ int main(int argc, const char* argv[]) {
 			openFile(inputFile, inputIsHeightMap);
 		}
 
+	/*
+	const char* files[] = {"hand.txt", "neptune.txt", "../datasets/d1.txt"};
+	const bool hmaps[] = {false, false, true};
+
+	printf("Running benchmarks...\n");
+	for(int i=0; i<3; i++) {
+		for(int j=0; j<15; j++)
+			openFile(files[i], hmaps[i]);
+	}
+	printf("finished!\n");
+	*/
+
 	InitGL(argc, argv);
 	glutMainLoop();
 	return 0;
 }
 
 void openFile(const char* inputFile, const bool isHeightMap) {
-	cout << "Opening " << inputFile << "..." << endl;
+	//cout << "Opening " << inputFile << "..." << endl;
+	//FILE* bFile = fopen("benchmarks.csv", "a+");
 
 	cpuR.readInput(inputFile, isHeightMap);
 	cpuR.initializeConstraints();
@@ -108,7 +130,8 @@ void openFile(const char* inputFile, const bool isHeightMap) {
 	cpuR.stSimplex();
 	time = clock() - time;
 	cpuR.fillVolume();
-	cout << "CPU version took " << time << "ms!" << endl;
+	//cout << "CPU version took " << time << "ms!" << endl;
+	//fprintf(bFile, "%s,CPU,%d\n", inputFile, time);
 
 	ompR.readInput(inputFile, isHeightMap);
 	ompR.initializeConstraints();
@@ -117,7 +140,8 @@ void openFile(const char* inputFile, const bool isHeightMap) {
 	ompR.stSimplex();
 	time = clock() - time;
 	ompR.fillVolume();
-	cout << "OpenMP version took " << time << "ms!" << endl;
+	//cout << "OpenMP version took " << time << "ms!" << endl;
+	//fprintf(bFile, "%s,OpenMP,%d\n", inputFile, time);
 
 #ifdef _USE_GPU_
 	gpuR.readInput(inputFile, isHeightMap);
@@ -130,10 +154,12 @@ void openFile(const char* inputFile, const bool isHeightMap) {
 	gpuR.readResults();
 	time = clock() - time;
 	gpuR.fillVolume();
-	cout << "GPU version took " << time << "ms!" << endl;
+	//cout << "GPU version took " << time << "ms!" << endl;
+	//fprintf(bFile, "%s,GPU,%d\n", inputFile, time);
 #endif
 
-	initDrawArray();
+	//fclose(bFile);
+	initDrawArray(cpuR);
 }
 
 void initializeTweakBar() {
@@ -142,26 +168,18 @@ void initializeTweakBar() {
 	bar = TwNewBar("Config");
 	TwDefine(" Config position='550 345' size='225 230' color='150 150 150' ");
 
-	TwAddVarRW(bar, "Zoom", TW_TYPE_FLOAT, &g_Zoom, 
-		" min=0.01 max=2.5 step=0.01 keyIncr=z keyDecr=Z help='Scale the object (1=original size).' ");
-	TwAddVarRW(bar, "ObjRotation", TW_TYPE_QUAT4F, &g_Rotation, 
-		" label='Object rotation' open help='Change the object orientation.' ");
-	// Add callback to toggle auto-rotate mode (callback functions are defined above).
-	TwAddVarCB(bar, "AutoRotate", TW_TYPE_BOOL32, SetAutoRotateCB, GetAutoRotateCB, NULL, 
-		" label='Auto-rotate' key=space help='Toggle auto-rotate mode.' ");
-	TwAddVarCB(bar, "RunOnGPU", TW_TYPE_BOOLCPP, SetRunOnGpuCB, GetRunOnGpuCB, NULL, 
-		" label='GPU' key=c help='Toggle run mode.' ");
+	TwAddVarRW(bar, "Zoom", TW_TYPE_FLOAT, &g_Zoom, " min=0.01 max=2.5 step=0.01 keyIncr=z keyDecr=Z ");
+	TwAddVarRW(bar, "ObjRotation", TW_TYPE_QUAT4F, &g_Rotation, " label='Object rotation' open ");
+	TwAddVarCB(bar, "AutoRotate", TW_TYPE_BOOL32, SetAutoRotateCB, GetAutoRotateCB, NULL, " label='Auto-rotate' key=space ");
+	resultsType = TwDefineEnum("ResultsType", resultsEV, 3);
+	TwAddVarCB(bar, "Version", resultsType, SetVersionCB, GetVersionCB, NULL, " keyIncr=v keyDecr=V");
 
 	TwCopyCDStringToClientFunc(CopyCDStringToClient);
-    TwAddVarRW(bar, "Filename", TW_TYPE_CDSTRING, &g_Filename, 
-               " label='Filename' group=OpenFile help='Mesh to be rasterized.' ");
+    TwAddVarRW(bar, "Filename", TW_TYPE_CDSTRING, &g_Filename,  " label='Filename' group=OpenFile ");
 	TwAddVarCB(bar, "IsHeightMap", TW_TYPE_BOOLCPP, SetIsHeightMapCB, GetIsHeightMapCB, NULL, 
-		" label='HeightMap' group=OpenFile key=h true='TRUE' false='FALSE' help='Toggle input type.' ");
-    // Add a button to create a new bar using the title
-    TwAddButton(bar, "OpenFileButton", OpenFileCB, &g_Filename, 
-                " label='Open' group=OpenFile key=o help='Open file.' ");
-    // Set the group label & separator
-    TwDefine(" Config/OpenFile label='Open a File' help='This example demonstates different use of std::string variables.' ");
+								" label='HeightMap' group=OpenFile key=h true='TRUE' false='FALSE' ");
+    TwAddButton(bar, "OpenFileButton", OpenFileCB, &g_Filename, " label='Open' group=OpenFile key=o ");
+    TwDefine(" Config/OpenFile label='Open a File' ");
 }
 
 void InitGL(int argc, const char **argv)
@@ -188,18 +206,14 @@ void InitGL(int argc, const char **argv)
 	TwGLUTModifiersFunc(glutGetModifiers);
 }
 
-void initDrawArray()
+void initDrawArray(const Rasterizer& rasterizer)
 {
 	points.clear();
 	double cubeSize = 2.0/((double)GRID_SIZE_X);
 	for(int y=0; y<GRID_SIZE_Y; y++)
 		for(int z=0; z<GRID_SIZE_Z; z++)
 			for(int x=0; x<GRID_SIZE_X; x++)
-				if(
-#ifdef _USE_GPU_
-					(g_UseGpuResults && gpuR.volume[x][y][z]) || 
-#endif
-					(!g_UseGpuResults && cpuR.volume[x][y][z]))
+				if(rasterizer.volume[x][y][z])
 				{
 					points.push_back((x+0.5)*cubeSize);
 					points.push_back((z+0.5)*cubeSize);
@@ -291,8 +305,9 @@ void DisplayGL()
 
 	glColor3f(0.9, 0.9, 0.9);
 	const char* label;
-	if(g_UseGpuResults) label = "GPU Rasterizer";
-	else label = "CPU Rasterizer";
+	if (version == CPU_RESULTS) label = "CPU Rasterizer";
+	else if(version == OMP_RESULTS) label = "OpenMP Rasterizer";
+	else if(version == GPU_RESULTS) label = "GPU Rasterizer";
 	drawText(0.6, 0.9, 0, GLUT_BITMAP_HELVETICA_12, label);
 
 	TwDraw();
@@ -325,13 +340,17 @@ void Idle()
     glutPostRedisplay();
 }
 
-void TW_CALL GetRunOnGpuCB(void *value, void *clientData) {
-	*(bool *)(value) = g_UseGpuResults;
+void TW_CALL GetVersionCB(void *value, void *clientData) {
+	*(RasterizerVersion *)(value) = version;
 }
 
-void TW_CALL SetRunOnGpuCB(const void *value, void *clientData) {
-	g_UseGpuResults = *(bool *)(value);
-	initDrawArray();
+void TW_CALL SetVersionCB(const void *value, void *clientData) {
+	version = *(RasterizerVersion *)(value);
+	if(version == CPU_RESULTS) initDrawArray(cpuR);
+	else if(version == OMP_RESULTS) initDrawArray(ompR);
+#ifdef _USE_GPU_
+	else if(version == GPU_RESULTS) initDrawArray(gpuR);
+#endif
 }
 
 void TW_CALL GetIsHeightMapCB(void *value, void *clientData) {

@@ -189,7 +189,6 @@ void Rasterizer::readTriangles(const char* filename) {
 	FILE* splxFile;
 	if(filename) splxFile = fopen(filename, "r");
 
-	cout << "Using " << filename << " simplices..." << endl;
 	fscanf(splxFile, "%d", &numSimplices);
 	c_size = (N_DIMENSIONS+1)*numSimplices*C_PER_SIMPLEX;
 	s_size = (N_DIMENSIONS+1)*(K+1)*numSimplices;

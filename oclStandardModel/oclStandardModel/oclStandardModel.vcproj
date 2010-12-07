@@ -98,6 +98,7 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
+			UseOfMFC="0"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -141,9 +142,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="oclUtils32D.lib OpenCL.lib shrUtils32D.lib OCLpp.lib glew32.lib AntTweakBar.lib"
+				AdditionalDependencies="oclUtils32.lib OpenCL.lib shrUtils32.lib OCLpp.lib glew32.lib AntTweakBar.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;../$(ConfigurationName)&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\lib\$(PlatformName)\&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\shared\lib&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\lib&quot;;anttweakbar/lib/"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"

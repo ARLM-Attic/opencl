@@ -37,7 +37,7 @@ void GPU_Rasterizer::buildProgram() {
 	files.push_back("stSimplex.h");
 	files.push_back("stSimplex2.cl");
 	Program *program = cl.createProgram(files);
-	program->build(true);
+	program->build(false);
 
 	stSimplexLauncher = program->createLauncher("stSimplex");
 
