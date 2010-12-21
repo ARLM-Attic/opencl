@@ -1,0 +1,9 @@
+C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails_WebRole\bin\Thumbnails_WebRole.dll
+C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails_WebRole\bin\Thumbnails_WebRole.pdb
+C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails_WebRole\bin\Microsoft.WindowsAzure.Diagnostics.dll
+C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails_WebRole\bin\Microsoft.WindowsAzure.StorageClient.dll
+C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails_WebRole\bin\Microsoft.WindowsAzure.Diagnostics.xml
+C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails_WebRole\bin\Microsoft.WindowsAzure.StorageClient.xml
+C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails_WebRole\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails_WebRole\obj\Debug\Thumbnails_WebRole.dll
+C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails_WebRole\obj\Debug\Thumbnails_WebRole.pdb

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type='text/xsl' href='_UpgradeReport_Files/UpgradeReport.xslt'?><UpgradeLog>
+<Properties><Property Name="Solution" Value="Thumbnails">
+</Property><Property Name="Solution File" Value="C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails.sln">
+</Property><Property Name="Date" Value="terça-feira, 14 de dezembro de 2010">
+</Property><Property Name="Time" Value="11:02">
+</Property></Properties><Event ErrorLevel="0" Project="C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails\Thumbnails.ccproj" Source="Thumbnails\ServiceDefinition.csdef" Description="Added Sites element to the web role 'Thumbnails_WebRole'.">
+</Event><Event ErrorLevel="0" Project="C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails\Thumbnails.ccproj" Source="Thumbnails\ServiceDefinition.csdef" Description="Added Endpoints element to the web role 'Thumbnails_WebRole'.">
+</Event><Event ErrorLevel="3" Project="C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails\Thumbnails.ccproj" Source="Thumbnails\ServiceDefinition.csdef" Description="Converted">
+</Event><Event ErrorLevel="0" Project="C:\Users\Bruno Jurkovski\Azure\Thumbnails\Thumbnails\Thumbnails.ccproj" Source="Thumbnails\Thumbnails.ccproj" Description="Upgraded ProductVersion value to 1.3.0.">
+</Event><Event ErrorLevel="0" Project="Thumbnails_WebRole" Source="Thumbnails_WebRole\Thumbnails_WebRole.csproj" Description="The project file does not require conversion.">
+</Event><Event ErrorLevel="3" Project="Thumbnails_WebRole" Source="Thumbnails_WebRole\Thumbnails_WebRole.csproj" Description="No Conversion Required">
+</Event><Event ErrorLevel="0" Project="Thumbnails_WorkerRole" Source="Thumbnails_WorkerRole\Thumbnails_WorkerRole.csproj" Description="The project file does not require conversion.">
+</Event><Event ErrorLevel="3" Project="Thumbnails_WorkerRole" Source="Thumbnails_WorkerRole\Thumbnails_WorkerRole.csproj" Description="No Conversion Required">
+</Event><Event ErrorLevel="0" Project="" Source="Thumbnails.sln" Description="The solution file does not require conversion.">
+</Event><Event ErrorLevel="3" Project="" Source="Thumbnails.sln" Description="No Conversion Required">
+</Event></UpgradeLog>
