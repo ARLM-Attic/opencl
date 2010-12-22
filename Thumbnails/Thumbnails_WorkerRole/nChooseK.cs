@@ -9,7 +9,7 @@ namespace Rasterizer
     {
         // Returns the set of all permutations of 0..n-1 with k elements
         // this is represented as a matrix with 'n choose k' lines and k columns
-        int[,] nchoosek(int n,  int k, int[] nck) {
+        public static int[,] nchoosek(int n,  int k, out int nck) {
 	        int comb = n;
 	        for (int i = 1; i < k; i++)
 		        comb *= n-i;
@@ -40,7 +40,7 @@ namespace Rasterizer
 		        for (int i = e+1; i < k; i++)
 			        res[p, i] = res[p, i-1] + 1;
 	        }
-	        nck[0] = comb;
+	        nck = comb;
 	        return res;
         }
 
@@ -49,7 +49,7 @@ namespace Rasterizer
         // Each row contains 0s and 1s corresponds to a possible projection.
         // Returns a matrix with n+2 columns and 'lines' lines, which represents all the possible projections
         //  of 1 to m coordinates.
-        int[,] nchoosekMatrix(int n, int m, int[] lines) {
+        public static int[,] getMatrix(int n, int m, out int lines) {
 	        // This counts sum(i = 1; i < m; nchoosek(n, i))
 	        int count = 0;
 	        for (int k = 1; k <= m; k++) {
@@ -62,7 +62,7 @@ namespace Rasterizer
 	        }
 
 	        // Initializes the matrix
-	        int[,] res = new int[count,n+2];
+	        int[,] res = new int[count, n+2];
 	        for (int i = 0; i < count; i++) {
 		        for (int j = 0; j < n+2; j++) {
 			        if (j == n)
@@ -75,7 +75,7 @@ namespace Rasterizer
 	        int pos = 0;
 	        for (int set = 1; set <= m; set++) {
 		        int nck;
-		        int[,] t = nchoosek(n, set, nck);
+		        int[,] t = nchoosek(n, set, out nck);
 		        for (int ln = 0; ln < nck; ln++) {
 			        for (int col = 0; col < set; col++) {
 				        res[pos, t[ln,col]] = 1;
@@ -83,47 +83,24 @@ namespace Rasterizer
 			        res[pos, n+1] = set;
 			        pos++;
 		        }
-		        //delete[](t);
 	        }
 
-	        lines[0] = count;
-
-	        //cout << "NCK MATRIX" << endl;
-	        //for (int i = 0; i < *lines; i++) {
-	        //	for (int j = 0; j < n+2; j++)
-	        //		cout << res[i][j] << " ";
-	        //	cout << endl;
-	        //}
-
-	        //cout << endl << endl;
-
+	        lines = count;
 	        return res;
         }
 
         // FIXME
         // Returns a vector containing the nchoosekMatrix
         // This vector size is lines*(n+2)
-        int* nchoosekVector(const int n, const int m, int *lines) {
-	        int** nckm = nchoosekMatrix(n, m, lines);
-	        const int size = (*lines)*(n+2);
-	        int* res = new int[size];
+        public static int[] getVector(int n, int m, out int lines) {
+	        int[,] nckm = getMatrix(n, m, out lines);
+	        int size = (lines)*(n+2);
+	        int[] res = new int[size];
 	        for (int i = 0; i < size; i++) {
-		        const int idx = i/(n+2);
-		        const int idy = i%(n+2);
-		        res[i] = nckm[idx][idy];
+		        int idx = i/(n+2);
+		        int idy = i%(n+2);
+		        res[i] = nckm[idx, idy];
 	        }
-
-	        for (int i = 0; i < *lines; i++)
-		        delete[] nckm[i];
-	        delete[] nckm;
-
-	        /*cout << endl << endl << "NCKV" << endl;
-	        for (int i = 0; i < size; i++) {
-		        cout << res[i] << " ";
-		        if ((i+1)%(n+2) == 0)
-			        cout << endl;
-	        }
-	        cout << endl << endl;*/
 
 	        return res;
         }

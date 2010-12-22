@@ -10,6 +10,7 @@ namespace Rasterizer
         private static readonly int N_DIMENSIONS = 3;
         private static readonly int K = 2;
         private static readonly int C_PER_SIMPLEX = 16;
+        private static readonly float TOLERANCE = 1.0e-5f;
 
         private int numSimplices;
         private int sSize;
@@ -30,22 +31,276 @@ namespace Rasterizer
         public Rasterizer()
         {
             int _m_ = (N_DIMENSIONS < K + 1) ? (N_DIMENSIONS) : (K + 1);
-            nckv = nchoosekVector(N_DIMENSIONS, _m_, &nckRows);
+            nckv = nChooseK.getVector(N_DIMENSIONS, _m_, out nckRows);
             nck_size = (N_DIMENSIONS + 2) * nckRows * sizeof(int);
             constraints = null;
         }
 
-        //private void columnEchelonForm(SMatrix matrix, int* rank, int* independentCols);
-		private void echelonTest(int* ranks, int* indCols);
-		//private void makeStandardOriented(float* const coefficients);
-		//private void triangleFaceOrientation(const SMatrix points, const int rank,
-		//							const int* const columns, float* const coefficients);
-		//private void getHyperplane(SMatrix points, float* const c, const int* base, const int rank, const int* columns);
-		private void halfSpaceConstraints(float[] coefficients);
+        public void initializeConstraints() {
+	        constraints = new float[cSize];
+	        // Initialize the constraints so that evaluation is always true (no constraint)
+	        for (int c = 0; c < numSimplices*C_PER_SIMPLEX*(N_DIMENSIONS+1); c++) {
+		        constraints[c] = 0;
+	        }
+        }
 
-		private bool isZero(float value, float tolerance);
-		//private float determinant(const SMatrix matrix, int size);
-		//private void copyProjectedMatrix(float[,] src,  float[,] dst, const int* base);
+        private void columnEchelonForm(float[,] matrix, out int rank, ref int[] independentCols)
+        {
+            rank = 0;
+            int rows = N_DIMENSIONS + 1;
+            int cols = K + 1;
+            for (int i = 0; i != cols; ++i)
+            {
+                independentCols[i] = i;
+            }
+
+            int c = 0;
+            int r = 0;
+            while ((c != cols) && (r != rows))
+            {
+                // Find value and index of largest element in the remainder of row r.
+                int k = c;
+                float max = Math.Abs(matrix[r, c]);
+                for (int j = (c + 1); j != cols; ++j)
+                {
+                    float curr = Math.Abs(matrix[r, j]);
+                    if (max < curr)
+                    {
+                        k = j;
+                        max = curr;
+                    }
+                }
+                if (isZero(max, TOLERANCE))
+                {
+                    // The row is negligible, zero it out.
+                    for (int j = c; j != cols; ++j)
+                    {
+                        matrix[r, j] = 0;
+                    }
+                    r++;
+                }
+                else
+                {
+                    float pivot;
+                    // Update rank.
+                    rank++;
+                    // Swap c-th and k-th columns.
+                    for (int j = 0; j != rows; ++j)
+                    {
+                        float temp = matrix[j, c];
+                        matrix[j, c] = matrix[j, k];
+                        matrix[j, k] = temp;
+                    }
+
+                    // Swap independentCols[c] and independentCols[k]
+                    int tempIC = independentCols[c];
+                    independentCols[c] = independentCols[k];
+                    independentCols[k] = tempIC;
+                    // Divide the pivot column by the pivot element.
+                    pivot = 1.0f / matrix[r, c];
+                    for (int j = r; j != rows; ++j)
+                    {
+                        matrix[j, c] *= pivot;
+                    }
+                    // Subtract multiples of the pivot column from all the other columns.
+                    for (int j = 0; j != c; ++j)
+                    {
+                        pivot = matrix[r, j];
+
+                        for (int l = r; l != rows; ++l)
+                        {
+                            matrix[l, j] -= (pivot * matrix[l, c]);
+                        }
+                    }
+
+                    for (int j = c + 1; j != cols; ++j)
+                    {
+                        pivot = matrix[r, j];
+                        for (int l = r; l != rows; ++l)
+                        {
+                            matrix[l, j] -= (pivot * matrix[l, c]);
+                        }
+                    }
+                    c++;
+                    r++;
+                }
+            }
+        }
+
+		private void echelonTest(int[] ranks, int[] indCols) {
+	        for (int i = 0; i < numSimplices; i++) {
+		        float[,] e = new float[N_DIMENSIONS+1, K+1];
+		        int s_base = (N_DIMENSIONS+1)*(K+1)*i;
+		        //copy matrix
+		        for (int j = 0; j < (N_DIMENSIONS+1)*(K+1); j++) {
+			        int ln = j/(K+1);
+			        int cl = j%(K+1);
+			        e[ln, cl]=simplices[s_base+j];
+		        }
+		        // echelon form
+		        int[] ic = new int[K+1];
+		        columnEchelonForm(e, out ranks[i], ref ic);
+		        int ic_base = i*(K+1);
+		        for (int j = 0; j < (K+1); j++)
+			        indCols[ic_base+i] = ic[j];
+		        //copy back
+		        for (int j = 0; j < (N_DIMENSIONS+1)*(K+1); j++) {
+			        int ln = j/(K+1);
+			        int cl = j%(K+1);
+			        simplices[s_base+j] = e[ln, cl];
+		        }
+	        }
+        }
+
+        private void makeStandardOriented(ref float[] coefficients)
+        {
+            bool hasStdOrientation = true;
+            for (int i = 0; i <= N_DIMENSIONS; i++)
+                if (coefficients[i] < -TOLERANCE)
+                {
+                    hasStdOrientation = false;
+                    break;
+                }
+
+            if (!hasStdOrientation)
+                for (int i = 0; i <= N_DIMENSIONS; i++)
+                    coefficients[i] = -coefficients[i];
+        }
+
+
+        private void triangleFaceOrientation(float[,] points, int rank, int[] columns, float[] coefficients)
+        {
+            for (int p = 0; p < rank; p++)
+                if (columns[p] == 0)
+                {
+                    float dot = 0;
+                    for (int coord = 0; coord <= N_DIMENSIONS; coord++)
+                        dot += coefficients[coord] * points[coord, p];
+
+                    if (dot > 0)
+                    {
+                        for (int i = 0; i < N_DIMENSIONS + 1; i++)
+                            coefficients[i] = -coefficients[i];
+                        break;
+                    }
+                }
+        }
+
+		private void getHyperplane(float[,] points, ref float[] c, int[] base_, int rank, int[] columns) {
+	        // Guarantees the square matrix (it's not square because of the homogeneous coordinates)
+	        // The matrix must actually have rank columns and rank+1 rows
+	        if (rank != base_[N_DIMENSIONS+1]) {
+                return;
+	        }
+
+	        int[] dimensions = new int[N_DIMENSIONS+1];
+	        int index = 0;
+	        int it = 0;
+	        // Fills the dimensions array
+	        for(int i=0; i<N_DIMENSIONS+1; i++)
+		        c[i] = 0;
+
+	        while (index < rank) {
+		        if (base_[it] != 0) {
+			        dimensions[index] = it;
+			        index++;
+		        }
+		        it++;
+	        }
+	        dimensions[rank] = N_DIMENSIONS;		// homogeneous coordinates
+
+	        float[,] m = new float[N_DIMENSIONS+1, K+1];
+
+	        // Initializes the first matrix (first row out) -> first coefficient
+	        int nCols;
+	        for (int ln = 0; ln < rank; ln++) {
+		        nCols = 0;
+		        int col = 0;
+
+		        while(nCols<rank) {
+			        if(columns[col]!=0)
+				        m[ln, nCols++] = points[dimensions[ln+1], col];
+			        col++;
+		        }
+	        }
+	        int sig = ((1 + rank+1)&1)!=0 ? -1 : 1;
+	        c[dimensions[0]] = sig * determinant(m, rank);
+
+	        // updates the matrix -> more rank-1 coefficients
+	        for (int row = 0; row < rank-1; row++) {
+		        nCols = 0;
+		        int col=0;
+
+		        while(nCols<rank) {
+			        if(columns[col]!=0)
+				        m[row, nCols++] = points[dimensions[row], col];
+			        col++;
+		        }
+		        int multiplier = (((row+1+1) + nCols+1)&1)!=0 ? -1 : 1;
+		        c[dimensions[row+1]] = determinant(m, nCols)*multiplier;
+	        }
+
+	        nCols = 0;
+	        int col2=0;
+
+	        while(nCols<rank) {
+		        if(columns[col2]!=0)
+			        m[rank-1, nCols++] = points[dimensions[rank-1], col2];
+		        col2++;
+	        }
+
+	        sig = ((rank+1 + nCols+1)&1)!=0 ? -1 : 1;
+	        c[N_DIMENSIONS] = sig*determinant(m, nCols);
+        }
+
+        private void halfSpaceConstraints(ref float[] coefficients)
+        {
+            float b = 0;
+            for (int i = 0; i < N_DIMENSIONS; i++)
+            {
+                b += Math.Abs(coefficients[i]);
+            }
+            b = b / 2;
+            coefficients[N_DIMENSIONS] -= b;
+        }
+
+        private bool isZero(float value, float tolerance)
+        {
+            return (Math.Abs(value) < Math.Abs(tolerance));
+        }
+
+        private float determinant(float[,] matrix, int size)
+        {
+            if (size == 1)
+            {
+                return matrix[0, 0];
+            }
+            else if (size == 2)
+            {
+                float x = matrix[0, 0] * matrix[1, 1];
+                float y = matrix[1, 0] * matrix[0, 1];
+                return x - y;
+            }
+            // Sarrus
+            else if (size == 3)
+            {
+                return matrix[0, 0] * matrix[1, 1] * matrix[2, 2] + matrix[0, 1] * matrix[1, 2] * matrix[2, 0] + matrix[1, 0] * matrix[2, 1] * matrix[0, 2]
+                - (matrix[0, 2] * matrix[1, 1] * matrix[2, 0] + matrix[1, 0] * matrix[0, 1] * matrix[2, 2] + matrix[0, 0] * matrix[1, 2] * matrix[2, 1]);
+            }
+            else
+                return float.NaN;
+        }
+
+        private void copyProjectedMatrix(float[,] src, float[,] dst, int[] base_)
+        {
+            for (int col = 0; col < K + 1; col++)
+            {
+                for (int ln = 0; ln < N_DIMENSIONS + 1; ln++)
+                {
+                    dst[ln, col] = base_[ln] * src[ln, col];
+                }
+            }
+        }
 
         public void stSimplex() {
 	        for (int idx = 0; idx < numSimplices; idx++) {
@@ -67,10 +322,11 @@ namespace Rasterizer
 
 		        // Iterates through all possible projections
 		        for (int d = 0; d < nckRows; d++) {
-                    const int dim = nckv[(d) * (N_DIMENSIONS + 2) + (N_DIMENSIONS + 1)];
-                    //int[] proj_base = new int[XXXXXXXXX];
+                    int dim = nckv[(d) * (N_DIMENSIONS + 2) + (N_DIMENSIONS + 1)];
                     //copiar
-			        const int* proj_base = &nckv[(d)*(N_DIMENSIONS+2)+(0)];
+			        int[] proj_base = new int[N_DIMENSIONS+2];
+                    for(int pbI=0; pbI<N_DIMENSIONS+2; pbI++)
+                        proj_base[pbI] = nckv[(d)*(N_DIMENSIONS+2)+(pbI)];
 
 			        //Copies the projected matrix to echelon
 			        copyProjectedMatrix(points, echelon, proj_base);
@@ -81,7 +337,7 @@ namespace Rasterizer
 			        // (i.e., the rank of flat's matrix).
                     int rank;
                     int[] ic = new int[K + 1];
-			        columnEchelonForm(echelon, &rank, ic);
+			        columnEchelonForm(echelon, out rank, ref ic);
 
 			        // Compute constraints from induced flat if it is an hyperplane in
 			        // current d-dimensional space.
@@ -91,9 +347,9 @@ namespace Rasterizer
 				        for (int i = 0; i < K+1; i++)
                             columns[i] = 1;
 				        
-				        getHyperplane(echelon, c, proj_base, rank, columns);
-				        makeStandardOriented(c);
-				        halfSpaceConstraints(c);
+				        getHyperplane(echelon, ref c, proj_base, rank, columns);
+				        makeStandardOriented(ref c);
+				        halfSpaceConstraints(ref c);
 				        for (int i = 0; i < (N_DIMENSIONS+1); i++) {
 					        constraints[c_base+c_counter] = c[i];
 					        c_counter++;
@@ -112,9 +368,9 @@ namespace Rasterizer
 					        columns[0] = 0;
 					        float[] c = new float[N_DIMENSIONS+1];
 
-					        getHyperplane(points, c, proj_base, rank-1, columns);
+					        getHyperplane(points, ref c, proj_base, rank-1, columns);
 					        triangleFaceOrientation(points, rank, columns, c);
-					        halfSpaceConstraints(c);
+					        halfSpaceConstraints(ref c);
 					        for (int i = 0; i < (N_DIMENSIONS+1); i++) {
 						        constraints[c_base+c_counter] = c[i];
 						        c_counter++;
@@ -122,11 +378,11 @@ namespace Rasterizer
 
 					        for (int i = 1; i < K+1; i++) {
 						        columns[i-1] = 1; columns[i] = 0;
-						        getHyperplane(points, c, proj_base, rank-1, columns);
+						        getHyperplane(points, ref c, proj_base, rank-1, columns);
 						        triangleFaceOrientation(points, rank, columns, c);
-						        halfSpaceConstraints(c);
-						        for (int i = 0; i < (N_DIMENSIONS+1); i++) {
-							        constraints[c_base+c_counter] = c[i];
+						        halfSpaceConstraints(ref c);
+						        for (int j = 0; j < (N_DIMENSIONS+1); j++) {
+							        constraints[c_base+c_counter] = c[j];
 							        c_counter++;
 						        }
 					        }
@@ -134,14 +390,14 @@ namespace Rasterizer
 				        } else {
 					        float minC;
 					        float maxC;
-					        int coord;
+					        int coord=0;
 
 					        for(int i=0; i<N_DIMENSIONS; i++)
-						        if(proj_base[i])
+						        if(proj_base[i]!=0)
 							        coord = i;
 
-					        minC = 999999;//numeric_limits<float>::max();
-					        maxC = -999999;//numeric_limits<float>::min();
+                            minC = float.MaxValue;
+                            maxC = float.MinValue;
 					        for(int p=0; p<N_DIMENSIONS; p++)
 					        {
 						        minC = Math.Min(minC, points[coord,p]);
@@ -169,8 +425,8 @@ namespace Rasterizer
 					        }
 					        consMax[N_DIMENSIONS] = -maxC;
 
-					        halfSpaceConstraints(consMin);
-					        halfSpaceConstraints(consMax);
+					        halfSpaceConstraints(ref consMin);
+					        halfSpaceConstraints(ref consMax);
 
 					        for (int i = 0; i < (N_DIMENSIONS+1); i++) {
 						        constraints[c_base+c_counter] = consMin[i];
