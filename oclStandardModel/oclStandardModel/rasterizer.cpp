@@ -224,3 +224,50 @@ void Rasterizer::initializeConstraints() {
 		constraints[c] = 0;
 	}
 }
+
+void Rasterizer::printConstraints(FILE* file) {
+	if(file==NULL)
+		file = stdin;
+
+	for (int splx = 0; splx < numSimplices; splx++)
+	{
+		int cBase = (N_DIMENSIONS + 1) * C_PER_SIMPLEX * splx;
+		for (int constraint = 0; constraint < C_PER_SIMPLEX; constraint++)
+		{
+			for (int coef = 0; coef < N_DIMENSIONS + 1; coef++)
+			{
+				fprintf(file, "%f ", constraints[cBase + constraint * (N_DIMENSIONS + 1) + coef]);
+			}
+			fprintf(file, "\n");
+		}
+		fprintf(file, "\n");
+	}
+}
+
+#include <cmath>
+void Rasterizer::checkResults(const char* filename) {
+	FILE* file = fopen(filename, "r");
+	float fileCoef;
+	int eq=0, dif=0;
+
+	for (int splx = 0; splx < numSimplices; splx++)
+	{
+		int cBase = (N_DIMENSIONS + 1) * C_PER_SIMPLEX * splx;
+		for (int constraint = 0; constraint < C_PER_SIMPLEX; constraint++)
+		{
+			for (int coef = 0; coef < N_DIMENSIONS + 1; coef++)
+			{
+				fscanf(file, "%f", &fileCoef);
+				if(fabs(fileCoef - constraints[cBase + constraint * (N_DIMENSIONS + 1) + coef]) < 0.0001)
+					eq++;
+				else {
+					//printf("dif: %f\n", fabs(fileCoef - constraints[cBase + constraint * (N_DIMENSIONS + 1) + coef]));
+					dif++;
+				}
+			}
+		}
+	}
+	
+	printf("Equal: %d out of %d\n", eq, eq+dif);
+	fclose(file);
+}

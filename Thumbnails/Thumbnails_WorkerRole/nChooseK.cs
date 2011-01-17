@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Rasterizer
+namespace RasterizerNamespace
 {
     class nChooseK
     {

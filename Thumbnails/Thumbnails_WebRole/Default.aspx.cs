@@ -38,7 +38,7 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
                     //var storageAccount = CloudStorageAccount.FromConfigurationSetting("DataConnectionString");
 
                     blobStorage = storageAccount.CreateCloudBlobClient();
-                    CloudBlobContainer container = blobStorage.GetContainerReference("photogallery");
+                    CloudBlobContainer container = blobStorage.GetContainerReference("datasets");
 
                     container.CreateIfNotExist();
 
@@ -49,7 +49,7 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
                     container.SetPermissions(permissions);
 
                     queueStorage = storageAccount.CreateCloudQueueClient();
-                    CloudQueue queue = queueStorage.GetQueueReference("thumbnailmaker");
+                    CloudQueue queue = queueStorage.GetQueueReference("inputreceiver");
 
                     queue.CreateIfNotExist();
                 }
@@ -66,16 +66,16 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
             }
         }
 
-        private CloudBlobContainer GetPhotoGalleryContainer()
+        private CloudBlobContainer GetResultsContainer()
         {
             CreateOnceContainerAndQueue();
-            return blobStorage.GetContainerReference("photogallery");
+            return blobStorage.GetContainerReference("datasets");
         }
 
-        private CloudQueue GetThumbnailMakerQueue()
+        private CloudQueue GetInputReceiverQueue()
         {
             CreateOnceContainerAndQueue();
-            return queueStorage.GetQueueReference("thumbnailmaker");
+            return queueStorage.GetQueueReference("inputreceiver");
         }
 
         private string GetMimeType(string Filename)
@@ -105,13 +105,17 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
             {
                 var ext  =  System.IO.Path.GetExtension(upload.FileName);
    
-                var name = string.Format("{0:10}_{1}{2}", DateTime.Now.Ticks, Guid.NewGuid(), ext);
+                var name = string.Format("{0}_{1}.txt", upload.FileName, Guid.NewGuid());
 
-                var blob = GetPhotoGalleryContainer().GetBlockBlobReference(name);
+                var blob = GetResultsContainer().GetBlockBlobReference(name);
                 blob.Properties.ContentType = GetMimeType(upload.FileName);
                 blob.UploadFromStream(upload.FileContent);
-   
-                GetThumbnailMakerQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(name)));
+
+                if(isHeightMap.Checked)
+                    name += "\ny";
+                else
+                    name += "\nn";
+                GetInputReceiverQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(name)));
 
                 System.Diagnostics.Trace.WriteLine(String.Format("Enqueued '{0}'", name));
             }
@@ -121,9 +125,11 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
         {
             try
             {
-                thumbnails.DataSource = from o in GetPhotoGalleryContainer().GetDirectoryReference("thumbnails").ListBlobs()
+                results.DataSource = from o in GetResultsContainer().GetDirectoryReference("results").ListBlobs()
                                         select new { Url = o.Uri};
-                thumbnails.DataBind();
+                results.DataBind();
+
+
             }
             catch (Exception)
             {

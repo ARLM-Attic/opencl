@@ -2,8 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
+using System.Globalization;
 
-namespace Rasterizer
+using System.Diagnostics;
+
+namespace RasterizerNamespace
 {
     class Rasterizer
     {
@@ -42,6 +46,133 @@ namespace Rasterizer
 	        for (int c = 0; c < numSimplices*C_PER_SIMPLEX*(N_DIMENSIONS+1); c++) {
 		        constraints[c] = 0;
 	        }
+        }
+
+        public float[] loadDataset(Stream file)
+        {
+            StreamReader sr = new StreamReader(file);
+            char[] separators = new char [] {' '};
+
+            string line = sr.ReadLine();
+            string[] numbers = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+
+	        int sx = Convert.ToInt32(numbers[0]), sy = Convert.ToInt32(numbers[1]);
+	        float[,] heights = new float[sx, sy];
+
+	        for (int row = 0; row < sx; row++) {
+                line = sr.ReadLine();
+                numbers = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+		        for (int col = 0; col < sy; col++) {
+                    heights[row, col] = (float) Convert.ToDouble(numbers[col], CultureInfo.InvariantCulture.NumberFormat);
+		        }
+	        }
+
+	        numSimplices = sx*sy*2 ;
+	        int size = numSimplices  * (K+1) * (N_DIMENSIONS+1); // x1, x2, x3, 1
+	        float[] simplices = new float[size];
+
+	        for (int i=0; i<size; i++)
+		        simplices[i] = 0;
+
+	        int ns = numSimplices * (K+1);
+	        int idx = 0;
+	        for (int y = 0; y < sy - 1; y++) {
+		        for (int x = 0; x < sx - 1; x++) {
+			        // Even - 1st triangle
+			        simplices[idx] = x; // 1st coord, 1st point
+			        simplices[idx + ns] = y; // 2nd coord, 1st point
+			        simplices[idx + 2*ns] = heights[x, y]; // 3rd coord, 1st point
+			        simplices[idx + 3*ns] = 1; //homogenous coord, 1st point
+			        idx++;
+
+			        simplices[idx] = x+1; // 1st coord, 2nd point
+			        simplices[idx + ns] = y; // 2nd coord, 2nd point
+			        simplices[idx + 2*ns] = heights[x+1, y]; // 3rd coord, 2nd point
+			        simplices[idx + 3*ns] = 1; //homogenous coord, 2nd point
+			        idx++;
+
+			        simplices[idx] = x+1; // 1st coord, 3rd point
+			        simplices[idx + ns] = y+1; // 2nd coord, 3rd point
+			        simplices[idx + 2*ns] = heights[x+1, y+1]; // 3rd coord, 3rd point
+			        simplices[idx + 3*ns] = 1; //homogenous coord, 3rd point
+			        idx++;
+
+			        // Odd - 2nd triangle
+			        simplices[idx] = x; // 1st coord, 1st point
+			        simplices[idx + ns] = y; // 2nd coord, 1st point
+			        simplices[idx + 2*ns] = heights[x, y]; // 3rd coord, 1st point
+			        simplices[idx + 3*ns] = 1; //homogenous coord, 1st point
+			        idx++;
+
+			        simplices[idx] = x+1; // 1st coord, 2nd point
+			        simplices[idx + ns] = y+1; // 2nd coord, 2nd point
+			        simplices[idx + 2*ns] = heights[x+1, y+1]; // 3rd coord, 2nd point
+			        simplices[idx + 3*ns] = 1; //homogenous coord, 2nd point
+			        idx++;
+
+			        simplices[idx] = x; // 1st coord, 3rd point
+			        simplices[idx + ns] = y+1; // 2nd coord, 3rd point
+			        simplices[idx + 2*ns] = heights[x, y+1]; // 3rd coord, 3rd point
+			        simplices[idx + 3*ns] = 1; //homogenous coord, 3rd point
+			        idx++;
+		        }
+	        }
+
+	        return simplices;
+        }
+
+        public void readHeightMap(Stream file)
+        {
+            simplices = loadDataset(file);
+            cSize = (N_DIMENSIONS + 1) * numSimplices * C_PER_SIMPLEX;
+            sSize = (N_DIMENSIONS + 1) * (K + 1) * numSimplices;
+        }
+
+        public void readTriangles(Stream file)
+        {
+            StreamReader sr = new StreamReader(file);
+
+            string line = sr.ReadLine();
+            /*
+            while (sr.Peek() >= 0)
+            */
+
+            char[] separators = new char [] {' '};
+            string[] numbers = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+
+            numSimplices = Convert.ToInt32(numbers[0]);
+
+            cSize = (N_DIMENSIONS + 1) * numSimplices * C_PER_SIMPLEX;
+            sSize = (N_DIMENSIONS + 1) * (K + 1) * numSimplices;
+            simplices = new float[sSize];
+            //Read the file
+            //Simplex s, point p, coordinate dim
+            for (int s = 0; s < numSimplices; s++)
+            {
+                for (int dim = 0; dim < N_DIMENSIONS; dim++)
+                {
+                    do
+                    {
+                        line = sr.ReadLine();
+                    } while (line == "");
+
+                    numbers = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+                    for (int p = 0; p < K + 1; p++)
+                    {
+                        simplices[dim * (numSimplices) * (K + 1) + s * (K + 1) + p] = (float)Convert.ToDouble(numbers[p], CultureInfo.InvariantCulture.NumberFormat);
+                        //homogenous coordinates
+                        simplices[N_DIMENSIONS * (numSimplices) * (K + 1) + s * (K + 1) + p] = 1;
+                    }
+                }
+            }
+        }
+
+        public void readInput(Stream file, bool isHeightMap)
+        {
+	        if(isHeightMap)
+		        readHeightMap(file);
+	        else
+		        readTriangles(file);
         }
 
         private void columnEchelonForm(float[,] matrix, out int rank, ref int[] independentCols)
@@ -441,6 +572,27 @@ namespace Rasterizer
 			        }
 		        }
 	        }
+        }
+
+        public string getConstraintsStr()
+        {
+            StringWriter sw = new StringWriter(CultureInfo.InvariantCulture.NumberFormat);
+            
+            for (int splx = 0; splx < numSimplices; splx++)
+            {
+                int cBase = (N_DIMENSIONS + 1) * C_PER_SIMPLEX * splx;
+                for (int constraint = 0; constraint < C_PER_SIMPLEX; constraint++)
+                {
+                    for (int coef = 0; coef < N_DIMENSIONS + 1; coef++)
+                    {
+                        sw.Write("{0} ", constraints[cBase + constraint * (N_DIMENSIONS + 1) + coef]);
+                    }
+                    sw.Write("\n");
+                }
+                sw.Write("\n");
+            }
+
+            return sw.ToString();
         }
     }
 }

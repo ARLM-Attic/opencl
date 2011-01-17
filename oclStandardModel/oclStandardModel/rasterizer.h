@@ -53,6 +53,10 @@ class Rasterizer {
 		void readInput(const char* filename, bool isHeightMap);
 
 		void initializeConstraints();
+
+		void printConstraints(FILE* file=NULL);
+
+		void checkResults(const char* filename);
 };
 
 #endif

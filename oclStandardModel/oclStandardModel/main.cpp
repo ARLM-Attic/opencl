@@ -1,4 +1,4 @@
-#define _USE_GPU_
+//#define _USE_GPU_
 
 #include <cstring>
 #include <cstdlib>
@@ -130,6 +130,10 @@ void openFile(const char* inputFile, const bool isHeightMap) {
 	cpuR.stSimplex();
 	time = clock() - time;
 	cpuR.fillVolume();
+	FILE* file = fopen("out_cpu.txt", "w");
+	cpuR.printConstraints(file);
+	fclose(file);
+	cpuR.checkResults("azure_out_neptune.txt");
 	//cout << "CPU version took " << time << "ms!" << endl;
 	//fprintf(bFile, "%s,CPU,%d\n", inputFile, time);
 

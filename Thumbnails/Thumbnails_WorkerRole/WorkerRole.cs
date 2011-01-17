@@ -12,15 +12,30 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Globalization;
 using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.StorageClient;
 using Microsoft.WindowsAzure.ServiceRuntime;
 using Microsoft.WindowsAzure.Diagnostics;
 
 using ColorUtils;
+using RasterizerNamespace;
 
 namespace Microsoft.Samples.ServiceHosting.Thumbnails
 {
+    public class ResultsTable : TableServiceEntity
+    {
+        public ResultsTable(string partitionKey, string rowKey) : base(partitionKey, rowKey) { }
+
+        // Rows need a unique partition key – so create a new guid for every row
+        public ResultsTable() : this(Guid.NewGuid().ToString(), String.Empty) { }
+
+        // My table row
+        public string Results { get; set; }
+        public double Time { get; set; }
+
+    }
+
     public class WorkerRole : RoleEntryPoint
     {
         private Stream CreateThumbnail(Stream input)
@@ -135,10 +150,10 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
             var storageAccount = CloudStorageAccount.FromConfigurationSetting("DataConnectionString");
 
             CloudBlobClient blobStorage = storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobStorage.GetContainerReference("photogallery");
+            CloudBlobContainer container = blobStorage.GetContainerReference("datasets");
 
             CloudQueueClient queueStorage = storageAccount.CreateCloudQueueClient();
-            CloudQueue queue = queueStorage.GetQueueReference("thumbnailmaker");
+            CloudQueue queue = queueStorage.GetQueueReference("inputreceiver");
 
             Trace.TraceInformation("Creating container and queue...");
 
@@ -183,19 +198,7 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
             }
 
             Trace.TraceInformation("Listening for queue messages...");
-            XYZColor c = ColorConversor.rgb2xyz(new RGBColor(1,0,3));
-            LabColor a = ColorConversor.xyz2lab(c);
-            XYZColor d = ColorConversor.lab2xyz(a);
-            RGBColor b = ColorConversor.xyz2rgb(d);
-            Trace.TraceInformation("XYZ(c): {0}, {1}, {2}", c.x, c.y, c.z);
-            Trace.TraceInformation("L*a*b*(a): {0}, {1}, {2}", a.l, a.a, a.b);
-            Trace.TraceInformation("XYZ(d): {0}, {1}, {2}", d.x, d.y, d.z);
-            Trace.TraceInformation("RGB(b): {0}, {1}, {2}", b.r, b.g, b.b);
-            Trace.TraceInformation("============================");
-            XYZColor t1 = ColorConversor.rgb2xyz(new RGBColor(1, 0, 3));
-            RGBColor t2 = ColorConversor.xyz2rgb(t1);
-            Trace.TraceInformation("XYZ(t1): {0}, {1}, {2}", t1.x, t1.y, t1.z);
-            Trace.TraceInformation("RGB(t2): {0}, {1}, {2}", t2.r, t2.g, t2.b);
+
             // Now that the queue and the container have been created in the above initialization process, get messages
             // from the queue and process them individually.
             while (true)
@@ -205,19 +208,40 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
                     CloudQueueMessage msg = queue.GetMessage();
                     if (msg != null)
                     {
-                        string path = msg.AsString;
-                        string thumbnailName = System.IO.Path.GetFileNameWithoutExtension(path) + ".jpg";
-                        Trace.TraceInformation(string.Format("Dequeued '{0}'", path));
+                        string[] parts = msg.AsString.Split('\n'); // [path, (y|n - isHeightMap)]
+
+                        string path = parts[0];
                         CloudBlockBlob content = container.GetBlockBlobReference(path);
-                        CloudBlockBlob thumbnail = container.GetBlockBlobReference("thumbnails/" + thumbnailName);
-                        MemoryStream image = new MemoryStream();
+                        CloudBlockBlob resultBlob = container.GetBlockBlobReference("results/" + path);
+                        CloudBlockBlob timesBlob = container.GetBlockBlobReference("times/" + path);
+                        MemoryStream input = new MemoryStream();
+                        content.DownloadToStream(input);
+                        input.Seek(0, SeekOrigin.Begin);
 
-                        content.DownloadToStream(image);
+                        //StreamReader sr = new StreamReader(input);
+                        Trace.TraceInformation("Creating Rasterizer...");
+                        Rasterizer r = new Rasterizer();
+                        r.readInput(input, parts[1] == "y");
+                        Trace.TraceInformation("Read input!");
+                        r.initializeConstraints();
+                        Trace.TraceInformation("Will run...");
 
-                        image.Seek(0, SeekOrigin.Begin);
-                      
-                        thumbnail.Properties.ContentType = "image/jpeg";
-                        thumbnail.UploadFromStream(CreateThumbnail(image));
+                        DateTime startTime = DateTime.Now;
+                        r.stSimplex();
+                        TimeSpan duration = DateTime.Now - startTime;
+
+                        Trace.TraceInformation("Finished! Took " + duration.TotalMilliseconds + "ms");
+
+                        string result = r.getConstraintsStr();
+                        byte[] byteArray = Encoding.Default.GetBytes(result);
+                        MemoryStream stream = new MemoryStream(byteArray);
+                        resultBlob.Properties.ContentType = "text/plain";
+                        resultBlob.UploadFromStream(stream);
+
+                        byteArray = Encoding.Default.GetBytes(duration.TotalMilliseconds.ToString(CultureInfo.InvariantCulture.NumberFormat));
+                        stream = new MemoryStream(byteArray);
+                        timesBlob.Properties.ContentType = "text/plain";
+                        timesBlob.UploadFromStream(stream);
 
                         Trace.TraceInformation(string.Format("Done with '{0}'", path));
 

@@ -106,7 +106,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\inc&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\shared\inc&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\OpenCL\common\inc&quot;;&quot;C:\Documents and Settings\All Users\Dados de aplicativos\NVIDIA Corporation\NVIDIA GPU Computing SDK\shared\inc&quot;;&quot;C:\ProgramData\NVIDIA Corporation\NVIDIA GPU Computing SDK 3.2\OpenCL\common\inc&quot;;&quot;C:\ProgramData\NVIDIA Corporation\NVIDIA GPU Computing SDK 3.2\shared\inc&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
