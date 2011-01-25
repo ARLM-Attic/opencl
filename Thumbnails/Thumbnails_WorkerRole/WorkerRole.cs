@@ -17,25 +17,14 @@ using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.StorageClient;
 using Microsoft.WindowsAzure.ServiceRuntime;
 using Microsoft.WindowsAzure.Diagnostics;
+using System.Data.Services.Client;
 
 using ColorUtils;
 using RasterizerNamespace;
+using RasterizerTables;
 
 namespace Microsoft.Samples.ServiceHosting.Thumbnails
 {
-    public class ResultsTable : TableServiceEntity
-    {
-        public ResultsTable(string partitionKey, string rowKey) : base(partitionKey, rowKey) { }
-
-        // Rows need a unique partition key – so create a new guid for every row
-        public ResultsTable() : this(Guid.NewGuid().ToString(), String.Empty) { }
-
-        // My table row
-        public string Results { get; set; }
-        public double Time { get; set; }
-
-    }
-
     public class WorkerRole : RoleEntryPoint
     {
         private Stream CreateThumbnail(Stream input)
@@ -148,6 +137,12 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
         public override void Run()
         {
             var storageAccount = CloudStorageAccount.FromConfigurationSetting("DataConnectionString");
+            
+            TableServiceContext tableServiceContext = new TableServiceContext(storageAccount.TableEndpoint.ToString(), storageAccount.Credentials);
+            storageAccount.CreateCloudTableClient().CreateTableIfNotExist("ResultsTable");
+
+            //var tableClient = storageAccount.CreateCloudTableClient();
+            //tableClient.CreateTableIfNotExist("ResultsTable");
 
             CloudBlobClient blobStorage = storageAccount.CreateCloudBlobClient();
             CloudBlobContainer container = blobStorage.GetContainerReference("datasets");
@@ -208,40 +203,60 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
                     CloudQueueMessage msg = queue.GetMessage();
                     if (msg != null)
                     {
-                        string[] parts = msg.AsString.Split('\n'); // [path, (y|n - isHeightMap)]
+                        // Protocol: [path, (y|n - isHeightMap), filename]
+                        string[] parts = msg.AsString.Split('\n');
 
+                        // Get the blob directories
                         string path = parts[0];
                         CloudBlockBlob content = container.GetBlockBlobReference(path);
                         CloudBlockBlob resultBlob = container.GetBlockBlobReference("results/" + path);
-                        CloudBlockBlob timesBlob = container.GetBlockBlobReference("times/" + path);
+                        
+                        // Read the input file from its blob to a MemoryStream
                         MemoryStream input = new MemoryStream();
                         content.DownloadToStream(input);
                         input.Seek(0, SeekOrigin.Begin);
 
-                        //StreamReader sr = new StreamReader(input);
                         Trace.TraceInformation("Creating Rasterizer...");
+
+                        // Initialize the rasterizer
+                        bool isHeightMap = (parts[1] == "y");
+                        bool runParallel = (parts[3] == "y");
                         Rasterizer r = new Rasterizer();
-                        r.readInput(input, parts[1] == "y");
-                        Trace.TraceInformation("Read input!");
+                        r.readInput(input, isHeightMap);
                         r.initializeConstraints();
+
                         Trace.TraceInformation("Will run...");
 
+                        // Run
                         DateTime startTime = DateTime.Now;
-                        r.stSimplex();
+                        if (runParallel)
+                            r.stSimplexParallel();
+                        else
+                            r.stSimplex();
                         TimeSpan duration = DateTime.Now - startTime;
 
                         Trace.TraceInformation("Finished! Took " + duration.TotalMilliseconds + "ms");
-
+                        
+                        // Save results in "/datasets/results/" blob
                         string result = r.getConstraintsStr();
                         byte[] byteArray = Encoding.Default.GetBytes(result);
                         MemoryStream stream = new MemoryStream(byteArray);
                         resultBlob.Properties.ContentType = "text/plain";
                         resultBlob.UploadFromStream(stream);
 
-                        byteArray = Encoding.Default.GetBytes(duration.TotalMilliseconds.ToString(CultureInfo.InvariantCulture.NumberFormat));
-                        stream = new MemoryStream(byteArray);
-                        timesBlob.Properties.ContentType = "text/plain";
-                        timesBlob.UploadFromStream(stream);
+                        // Save results metadata in ResultsTable table
+                        Uri dsetUri;
+                        Uri.TryCreate(content.Uri, path, out dsetUri);
+                        tableServiceContext.AddObject("ResultsTable", new ResultsTable()
+                        {
+                            ResultURL = resultBlob.Uri,
+                            DatasetURL = dsetUri,
+                            DatasetFilename = parts[2],
+                            Time = duration.TotalMilliseconds,
+                            IsHeightMap = isHeightMap,
+                            IsParallel = runParallel
+                        });
+                        tableServiceContext.SaveChanges();
 
                         Trace.TraceInformation(string.Format("Done with '{0}'", path));
 
@@ -257,7 +272,6 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
                     // Explicitly catch all exceptions of type StorageException here because we should be able to 
                     // recover from these exceptions next time the queue message, which caused this exception,
                     // becomes visible again.
-
                     System.Threading.Thread.Sleep(5000);
                     Trace.TraceError(string.Format("Exception when processing queue item. Message: '{0}'", e.Message));
                 }

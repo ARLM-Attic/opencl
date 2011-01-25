@@ -244,8 +244,7 @@ void Rasterizer::printConstraints(FILE* file) {
 	}
 }
 
-#include <cmath>
-void Rasterizer::checkResults(const char* filename) {
+void Rasterizer::compareResults(const char* filename) {
 	FILE* file = fopen(filename, "r");
 	float fileCoef;
 	int eq=0, dif=0;
@@ -261,13 +260,12 @@ void Rasterizer::checkResults(const char* filename) {
 				if(fabs(fileCoef - constraints[cBase + constraint * (N_DIMENSIONS + 1) + coef]) < 0.0001)
 					eq++;
 				else {
-					//printf("dif: %f\n", fabs(fileCoef - constraints[cBase + constraint * (N_DIMENSIONS + 1) + coef]));
 					dif++;
 				}
 			}
 		}
 	}
 	
-	printf("Equal: %d out of %d\n", eq, eq+dif);
+	printf("%d out of %d coefficients are equal!\n", eq, eq+dif);
 	fclose(file);
 }

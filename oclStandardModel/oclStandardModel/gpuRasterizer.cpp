@@ -55,6 +55,8 @@ void GPU_Rasterizer::stSimplex() {
 }
 
 void GPU_Rasterizer::readResults() {
+	//printf("will read results from gpu...\n");
 	constraints_d->read(constraints, c_size*sizeof(float));
+	//printf("read!\n");
 	cl.finish();
 }

@@ -50,6 +50,7 @@ float g_RotateStart[] = {0.0f, 0.0f, 0.0f, 1.0f};
 char* g_Filename = NULL;
 bool g_UseGpuResults = false;
 bool g_IsHeightMap = false;
+char* g_ResultFilename = NULL;
 
 typedef enum {
 	CPU_RESULTS,
@@ -67,6 +68,7 @@ void TW_CALL SetAutoRotateCB(const void *value, void *clientData);
 void TW_CALL GetAutoRotateCB(void *value, void *clientData);
 
 void TW_CALL OpenFileCB(void *clientData);
+void TW_CALL CompareResultsCB(void *clientData);
 
 void TW_CALL GetIsHeightMapCB(void *value, void *clientData);
 void TW_CALL SetIsHeightMapCB(const void *value, void *clientData);
@@ -130,10 +132,7 @@ void openFile(const char* inputFile, const bool isHeightMap) {
 	cpuR.stSimplex();
 	time = clock() - time;
 	cpuR.fillVolume();
-	FILE* file = fopen("out_cpu.txt", "w");
-	cpuR.printConstraints(file);
-	fclose(file);
-	cpuR.checkResults("azure_out_neptune.txt");
+	
 	//cout << "CPU version took " << time << "ms!" << endl;
 	//fprintf(bFile, "%s,CPU,%d\n", inputFile, time);
 
@@ -184,6 +183,9 @@ void initializeTweakBar() {
 								" label='HeightMap' group=OpenFile key=h true='TRUE' false='FALSE' ");
     TwAddButton(bar, "OpenFileButton", OpenFileCB, &g_Filename, " label='Open' group=OpenFile key=o ");
     TwDefine(" Config/OpenFile label='Open a File' ");
+
+	TwAddVarRW(bar, "Result Filename", TW_TYPE_CDSTRING, &g_ResultFilename,  " label='Results Filename' group=CheckResult ");
+	TwAddButton(bar, "CompareResultsButton", CompareResultsCB, &g_ResultFilename, " label='Compare' group=CheckResult key=p ");
 }
 
 void InitGL(int argc, const char **argv)
@@ -213,15 +215,17 @@ void InitGL(int argc, const char **argv)
 void initDrawArray(const Rasterizer& rasterizer)
 {
 	points.clear();
-	double cubeSize = 2.0/((double)GRID_SIZE_X);
+	double cubeSizeX = 2.0/((double)GRID_SIZE_X);
+	double cubeSizeY = 2.0/((double)GRID_SIZE_Y);
+	double cubeSizeZ = 2.0/((double)GRID_SIZE_Z);
 	for(int y=0; y<GRID_SIZE_Y; y++)
 		for(int z=0; z<GRID_SIZE_Z; z++)
 			for(int x=0; x<GRID_SIZE_X; x++)
 				if(rasterizer.volume[x][y][z])
 				{
-					points.push_back((x+0.5)*cubeSize);
-					points.push_back((z+0.5)*cubeSize);
-					points.push_back((y+0.5)*cubeSize);
+					points.push_back((x+0.5)*cubeSizeX);
+					points.push_back((z+0.5)*cubeSizeZ);
+					points.push_back((y+0.5)*cubeSizeY);
 				}
 }
 
@@ -273,7 +277,7 @@ void render()
 				glVertexPointer(3, GL_FLOAT, 0, &points[0]);
 				glDrawArrays(GL_POINTS, 0, points.size()/3);
 				glDisableClientState(GL_VERTEX_ARRAY);
-			glPopMatrix();
+			//glPopMatrix(); - was uncommented... ???
 		glPopMatrix();
 	}
 }
@@ -301,7 +305,8 @@ void DisplayGL()
 		}
 		ConvertQuaternionToMatrix(g_Rotation, mat);
 		glMultMatrixf(mat);
-		glTranslatef(-0.9, -0.9, -0.9);
+		//glTranslatef(-0.9, -0.9, -0.9);
+		//glTranslatef(0, -0.9, 0);
 		glScalef(g_Zoom, g_Zoom, g_Zoom);
 
 		render();
@@ -397,11 +402,25 @@ void TW_CALL GetAutoRotateCB(void *value, void *clientData)
 	*(int *)(value) = g_AutoRotate; // copy g_AutoRotate to value
 }
 
-// Callback function to create a bar with a given title
+// Callback function to open a input file
 void TW_CALL OpenFileCB(void *clientData)
 {
-    char **filename = (char **)(clientData);
-	
+	char **filename = (char **)(clientData);
+
 	if(*filename != NULL)
 		openFile(*filename, g_IsHeightMap);
+}
+
+// Callback function to compare the current results with the ones stored in a file
+void TW_CALL CompareResultsCB(void *clientData)
+{
+	char **filename = (char **)(clientData);
+
+	if(*filename != NULL) {
+		if (version == CPU_RESULTS) cpuR.compareResults(*filename);
+		else if(version == OMP_RESULTS) ompR.compareResults(*filename);
+#ifdef _USE_GPU_
+		else if(version == GPU_RESULTS) gpuR.compareResults(*filename);
+#endif
+	}
 }

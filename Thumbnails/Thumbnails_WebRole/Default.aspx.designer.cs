@@ -67,6 +67,15 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails {
         protected global::System.Web.UI.WebControls.CheckBox isHeightMap;
         
         /// <summary>
+        /// runParallel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox runParallel;
+        
+        /// <summary>
         /// up1 control.
         /// </summary>
         /// <remarks>
@@ -92,23 +101,5 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.Timer timer1;
-        
-        /// <summary>
-        /// results2 control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.GridView results2;
-        
-        /// <summary>
-        /// ObjectDataSource1 control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.ObjectDataSource ObjectDataSource1;
     }
 }

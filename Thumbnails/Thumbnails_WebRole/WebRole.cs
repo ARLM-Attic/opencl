@@ -12,7 +12,7 @@ using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.Diagnostics;
 using Microsoft.WindowsAzure.ServiceRuntime;
 
-namespace Thumbnails_WebRole
+namespace AzureRasterizer_WebRole
 {
     public class WebRole : RoleEntryPoint
     {

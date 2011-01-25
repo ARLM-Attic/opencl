@@ -18,6 +18,7 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include <cmath>
 
 #include "nchoosek.h"
 #include "stSimplex.h"
@@ -56,7 +57,7 @@ class Rasterizer {
 
 		void printConstraints(FILE* file=NULL);
 
-		void checkResults(const char* filename);
+		void compareResults(const char* filename);
 };
 
 #endif

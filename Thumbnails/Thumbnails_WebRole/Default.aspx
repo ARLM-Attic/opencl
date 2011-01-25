@@ -10,30 +10,30 @@
     <form id="form1" runat="server">
     <asp:ScriptManager ID="sm1" runat="server" />
     <div>
-        Upload input: <asp:FileUpload ID="upload" runat="server" /> <asp:Button ID="submitButton" runat="server" Text="Submit" OnClick="submitButton_Click" />
+        Upload input: <asp:FileUpload ID="upload" runat="server" />
+        <asp:Button ID="submitButton" runat="server" Text="Submit" OnClick="submitButton_Click" />
         <asp:CheckBox id="isHeightMap" Text="Is height map" TextAlign="Right" AutoPostBack="True" runat="server" />
+        <asp:CheckBox id="runParallel" Text="Run in parallel" TextAlign="Right" AutoPostBack="True" runat="server" Checked="True"/>
     </div>
     <div>
 
-        <asp:UpdatePanel ID="up1" runat="server">
+    <asp:UpdatePanel ID="up1" runat="server">
         <ContentTemplate>
         <asp:ListView ID="results" runat="server">
             <LayoutTemplate>
                 <asp:Image ID="itemPlaceholder" runat="server" />
             </LayoutTemplate>
             <ItemTemplate>
-                <!--<asp:Image ID="photoImage" runat="server" ImageUrl='<(...)%# Eval("Url") %>' />-->
-                <a href='<%# Eval("Url") %>' runat="server"> <%# Eval("Url") %> </a> <br />
+                <%# Eval("Filename") %> - 
+                <a id="A1" href='<%# Eval("DatasetUrl") %>' runat="server"> Input </a> - 
+                <a id="A2" href='<%# Eval("ResultUrl") %>' runat="server"> Result </a> - 
+                <%# Eval("Time") %>ms - 
+                <%# Eval("Type") %> 
+                <br />
             </ItemTemplate>
         </asp:ListView>
-                   <asp:Timer ID="timer1" runat="server" Interval="1000" />
-            <asp:GridView ID="results2" runat="server" AutoGenerateColumns="False" 
-                DataSourceID="ObjectDataSource1">
-            </asp:GridView>
-            <asp:ObjectDataSource ID="ObjectDataSource1" runat="server" 
-                SelectMethod="ListBlobs" 
-                TypeName="Microsoft.WindowsAzure.StorageClient.CloudBlobDirectory">
-            </asp:ObjectDataSource>
+        <br />
+            <asp:Timer ID="timer1" runat="server" Interval="1000" />
         </ContentTemplate>
     </asp:UpdatePanel>
  

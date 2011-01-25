@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Globalization;
+using System.Threading.Tasks;
 
 using System.Diagnostics;
 
@@ -133,9 +134,6 @@ namespace RasterizerNamespace
             StreamReader sr = new StreamReader(file);
 
             string line = sr.ReadLine();
-            /*
-            while (sr.Peek() >= 0)
-            */
 
             char[] separators = new char [] {' '};
             string[] numbers = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
@@ -298,7 +296,6 @@ namespace RasterizerNamespace
                     coefficients[i] = -coefficients[i];
         }
 
-
         private void triangleFaceOrientation(float[,] points, int rank, int[] columns, float[] coefficients)
         {
             for (int p = 0; p < rank; p++)
@@ -433,145 +430,316 @@ namespace RasterizerNamespace
             }
         }
 
-        public void stSimplex() {
-	        for (int idx = 0; idx < numSimplices; idx++) {
-		        int s_base = (N_DIMENSIONS+1)*(K+1)*idx;
-		        int ic_base = (K+1)*idx;
-		        int c_base = (N_DIMENSIONS+1)*C_PER_SIMPLEX*idx;
+        public void stSimplex()
+        {
+            for (int idx = 0; idx < numSimplices; idx++) {
+                int s_base = (N_DIMENSIONS + 1) * (K + 1) * idx;
+                int ic_base = (K + 1) * idx;
+                int c_base = (N_DIMENSIONS + 1) * C_PER_SIMPLEX * idx;
 
-		        int c_counter = 0;
+                int c_counter = 0;
 
-		        float[,] echelon = new float[N_DIMENSIONS+1,K+1];
-                float[,] points = new float[N_DIMENSIONS+1,K+1];
+                float[,] echelon = new float[N_DIMENSIONS + 1, K + 1];
+                float[,] points = new float[N_DIMENSIONS + 1, K + 1];
 
-		        // Load matrix into registers
-		        for (int i = 0; i < (K+1)*(N_DIMENSIONS+1); i++) {
-			        int ln = i/(K+1);
-			        int cl = i%(K+1);
-			        points[ln,cl] = simplices[idx*(K+1) + ln*numSimplices*(K+1) + cl];
-		        }
+                // Load matrix into registers
+                for (int i = 0; i < (K + 1) * (N_DIMENSIONS + 1); i++)
+                {
+                    int ln = i / (K + 1);
+                    int cl = i % (K + 1);
+                    points[ln, cl] = simplices[idx * (K + 1) + ln * numSimplices * (K + 1) + cl];
+                }
 
-		        // Iterates through all possible projections
-		        for (int d = 0; d < nckRows; d++) {
+                // Iterates through all possible projections
+                for (int d = 0; d < nckRows; d++)
+                {
                     int dim = nckv[(d) * (N_DIMENSIONS + 2) + (N_DIMENSIONS + 1)];
                     //copiar
-			        int[] proj_base = new int[N_DIMENSIONS+2];
-                    for(int pbI=0; pbI<N_DIMENSIONS+2; pbI++)
-                        proj_base[pbI] = nckv[(d)*(N_DIMENSIONS+2)+(pbI)];
+                    int[] proj_base = new int[N_DIMENSIONS + 2];
+                    for (int pbI = 0; pbI < N_DIMENSIONS + 2; pbI++)
+                        proj_base[pbI] = nckv[(d) * (N_DIMENSIONS + 2) + (pbI)];
 
-			        //Copies the projected matrix to echelon
-			        copyProjectedMatrix(points, echelon, proj_base);
+                    //Copies the projected matrix to echelon
+                    copyProjectedMatrix(points, echelon, proj_base);
 
-			        // Compute matrix representation of the flat induced by the vertices
-			        // projected onto current d-dimensional space (i.e., the reduced
-			        // column echelon form of vertices_proj) and its dimensionality
-			        // (i.e., the rank of flat's matrix).
+                    // Compute matrix representation of the flat induced by the vertices
+                    // projected onto current d-dimensional space (i.e., the reduced
+                    // column echelon form of vertices_proj) and its dimensionality
+                    // (i.e., the rank of flat's matrix).
                     int rank;
                     int[] ic = new int[K + 1];
-			        columnEchelonForm(echelon, out rank, ref ic);
+                    columnEchelonForm(echelon, out rank, ref ic);
 
-			        // Compute constraints from induced flat if it is an hyperplane in
-			        // current d-dimensional space.
-			        if (rank == dim) {
-                        float[] c = new float[N_DIMENSIONS+1];
-				        int[] columns = new int[K+1];
-				        for (int i = 0; i < K+1; i++)
+                    // Compute constraints from induced flat if it is an hyperplane in
+                    // current d-dimensional space.
+                    if (rank == dim)
+                    {
+                        float[] c = new float[N_DIMENSIONS + 1];
+                        int[] columns = new int[K + 1];
+                        for (int i = 0; i < K + 1; i++)
                             columns[i] = 1;
-				        
-				        getHyperplane(echelon, ref c, proj_base, rank, columns);
-				        makeStandardOriented(ref c);
-				        halfSpaceConstraints(ref c);
-				        for (int i = 0; i < (N_DIMENSIONS+1); i++) {
-					        constraints[c_base+c_counter] = c[i];
-					        c_counter++;
-				        }
 
-			        }
-			        else if (rank == dim+1) {
-				        if (dim > 1) {
-					        // Dimension is higher than 1,
-					        // create constraints from the extrusion of half-spaces bounded
-					        // by the facets of the convex polytope.
-					        // *NOTE*: here we assume that there are only triangles (2-simplex)
-					        // So, now we must create 3 new constraints, relative to facets 1-2, 1-3, 2-3
-					        int[] columns = new int[K+1];
-					        for (int i = 1; i < K+1; i++) columns[i] = 1;
-					        columns[0] = 0;
-					        float[] c = new float[N_DIMENSIONS+1];
+                        getHyperplane(echelon, ref c, proj_base, rank, columns);
+                        makeStandardOriented(ref c);
+                        halfSpaceConstraints(ref c);
+                        for (int i = 0; i < (N_DIMENSIONS + 1); i++)
+                        {
+                            constraints[c_base + c_counter] = c[i];
+                            c_counter++;
+                        }
 
-					        getHyperplane(points, ref c, proj_base, rank-1, columns);
-					        triangleFaceOrientation(points, rank, columns, c);
-					        halfSpaceConstraints(ref c);
-					        for (int i = 0; i < (N_DIMENSIONS+1); i++) {
-						        constraints[c_base+c_counter] = c[i];
-						        c_counter++;
-					        }
+                    }
+                    else if (rank == dim + 1)
+                    {
+                        if (dim > 1)
+                        {
+                            // Dimension is higher than 1,
+                            // create constraints from the extrusion of half-spaces bounded
+                            // by the facets of the convex polytope.
+                            // *NOTE*: here we assume that there are only triangles (2-simplex)
+                            // So, now we must create 3 new constraints, relative to facets 1-2, 1-3, 2-3
+                            int[] columns = new int[K + 1];
+                            for (int i = 1; i < K + 1; i++) columns[i] = 1;
+                            columns[0] = 0;
+                            float[] c = new float[N_DIMENSIONS + 1];
 
-					        for (int i = 1; i < K+1; i++) {
-						        columns[i-1] = 1; columns[i] = 0;
-						        getHyperplane(points, ref c, proj_base, rank-1, columns);
-						        triangleFaceOrientation(points, rank, columns, c);
-						        halfSpaceConstraints(ref c);
-						        for (int j = 0; j < (N_DIMENSIONS+1); j++) {
-							        constraints[c_base+c_counter] = c[j];
-							        c_counter++;
-						        }
-					        }
+                            getHyperplane(points, ref c, proj_base, rank - 1, columns);
+                            triangleFaceOrientation(points, rank, columns, c);
+                            halfSpaceConstraints(ref c);
+                            for (int i = 0; i < (N_DIMENSIONS + 1); i++)
+                            {
+                                constraints[c_base + c_counter] = c[i];
+                                c_counter++;
+                            }
 
-				        } else {
-					        float minC;
-					        float maxC;
-					        int coord=0;
+                            for (int i = 1; i < K + 1; i++)
+                            {
+                                columns[i - 1] = 1; columns[i] = 0;
+                                getHyperplane(points, ref c, proj_base, rank - 1, columns);
+                                triangleFaceOrientation(points, rank, columns, c);
+                                halfSpaceConstraints(ref c);
+                                for (int j = 0; j < (N_DIMENSIONS + 1); j++)
+                                {
+                                    constraints[c_base + c_counter] = c[j];
+                                    c_counter++;
+                                }
+                            }
 
-					        for(int i=0; i<N_DIMENSIONS; i++)
-						        if(proj_base[i]!=0)
-							        coord = i;
+                        }
+                        else
+                        {
+                            float minC;
+                            float maxC;
+                            int coord = 0;
+
+                            for (int i = 0; i < N_DIMENSIONS; i++)
+                                if (proj_base[i] != 0)
+                                    coord = i;
 
                             minC = float.MaxValue;
                             maxC = float.MinValue;
-					        for(int p=0; p<N_DIMENSIONS; p++)
-					        {
-						        minC = Math.Min(minC, points[coord,p]);
-						        maxC = Math.Max(maxC, points[coord,p]);
-					        }
+                            for (int p = 0; p < N_DIMENSIONS; p++)
+                            {
+                                minC = Math.Min(minC, points[coord, p]);
+                                maxC = Math.Max(maxC, points[coord, p]);
+                            }
 
-					        float[] consMin = new float[N_DIMENSIONS+1];
-					        float[] consMax = new float[N_DIMENSIONS+1];
+                            float[] consMin = new float[N_DIMENSIONS + 1];
+                            float[] consMax = new float[N_DIMENSIONS + 1];
 
-					        for(int i=0; i<N_DIMENSIONS; i++)
-					        {
-						        if(i==coord)
-							        consMin[i] = -1;
-						        else
-							        consMin[i] = 0;
-					        }
-					        consMin[N_DIMENSIONS] = minC;
+                            for (int i = 0; i < N_DIMENSIONS; i++)
+                            {
+                                if (i == coord)
+                                    consMin[i] = -1;
+                                else
+                                    consMin[i] = 0;
+                            }
+                            consMin[N_DIMENSIONS] = minC;
 
-					        for(int i=0; i<N_DIMENSIONS; i++)
-					        {
-						        if(i==coord)
-							        consMax[i] = 1;
-						        else
-							        consMax[i] = 0;
-					        }
-					        consMax[N_DIMENSIONS] = -maxC;
+                            for (int i = 0; i < N_DIMENSIONS; i++)
+                            {
+                                if (i == coord)
+                                    consMax[i] = 1;
+                                else
+                                    consMax[i] = 0;
+                            }
+                            consMax[N_DIMENSIONS] = -maxC;
 
-					        halfSpaceConstraints(ref consMin);
-					        halfSpaceConstraints(ref consMax);
+                            halfSpaceConstraints(ref consMin);
+                            halfSpaceConstraints(ref consMax);
 
-					        for (int i = 0; i < (N_DIMENSIONS+1); i++) {
-						        constraints[c_base+c_counter] = consMin[i];
-						        c_counter++;
-					        }
+                            for (int i = 0; i < (N_DIMENSIONS + 1); i++)
+                            {
+                                constraints[c_base + c_counter] = consMin[i];
+                                c_counter++;
+                            }
 
-					        for (int i = 0; i < (N_DIMENSIONS+1); i++) {
-						        constraints[c_base+c_counter] = consMax[i];
-						        c_counter++;
-					        }
-				        }
-			        }
-		        }
-	        }
+                            for (int i = 0; i < (N_DIMENSIONS + 1); i++)
+                            {
+                                constraints[c_base + c_counter] = consMax[i];
+                                c_counter++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public void stSimplexParallel()
+        {
+            Parallel.For(0, numSimplices, idx =>
+            {
+                int s_base = (N_DIMENSIONS + 1) * (K + 1) * idx;
+                int ic_base = (K + 1) * idx;
+                int c_base = (N_DIMENSIONS + 1) * C_PER_SIMPLEX * idx;
+
+                int c_counter = 0;
+
+                float[,] echelon = new float[N_DIMENSIONS + 1, K + 1];
+                float[,] points = new float[N_DIMENSIONS + 1, K + 1];
+
+                // Load matrix into registers
+                for (int i = 0; i < (K + 1) * (N_DIMENSIONS + 1); i++)
+                {
+                    int ln = i / (K + 1);
+                    int cl = i % (K + 1);
+                    points[ln, cl] = simplices[idx * (K + 1) + ln * numSimplices * (K + 1) + cl];
+                }
+
+                // Iterates through all possible projections
+                for (int d = 0; d < nckRows; d++)
+                {
+                    int dim = nckv[(d) * (N_DIMENSIONS + 2) + (N_DIMENSIONS + 1)];
+                    //copiar
+                    int[] proj_base = new int[N_DIMENSIONS + 2];
+                    for (int pbI = 0; pbI < N_DIMENSIONS + 2; pbI++)
+                        proj_base[pbI] = nckv[(d) * (N_DIMENSIONS + 2) + (pbI)];
+
+                    //Copies the projected matrix to echelon
+                    copyProjectedMatrix(points, echelon, proj_base);
+
+                    // Compute matrix representation of the flat induced by the vertices
+                    // projected onto current d-dimensional space (i.e., the reduced
+                    // column echelon form of vertices_proj) and its dimensionality
+                    // (i.e., the rank of flat's matrix).
+                    int rank;
+                    int[] ic = new int[K + 1];
+                    columnEchelonForm(echelon, out rank, ref ic);
+
+                    // Compute constraints from induced flat if it is an hyperplane in
+                    // current d-dimensional space.
+                    if (rank == dim)
+                    {
+                        float[] c = new float[N_DIMENSIONS + 1];
+                        int[] columns = new int[K + 1];
+                        for (int i = 0; i < K + 1; i++)
+                            columns[i] = 1;
+
+                        getHyperplane(echelon, ref c, proj_base, rank, columns);
+                        makeStandardOriented(ref c);
+                        halfSpaceConstraints(ref c);
+                        for (int i = 0; i < (N_DIMENSIONS + 1); i++)
+                        {
+                            constraints[c_base + c_counter] = c[i];
+                            c_counter++;
+                        }
+
+                    }
+                    else if (rank == dim + 1)
+                    {
+                        if (dim > 1)
+                        {
+                            // Dimension is higher than 1,
+                            // create constraints from the extrusion of half-spaces bounded
+                            // by the facets of the convex polytope.
+                            // *NOTE*: here we assume that there are only triangles (2-simplex)
+                            // So, now we must create 3 new constraints, relative to facets 1-2, 1-3, 2-3
+                            int[] columns = new int[K + 1];
+                            for (int i = 1; i < K + 1; i++) columns[i] = 1;
+                            columns[0] = 0;
+                            float[] c = new float[N_DIMENSIONS + 1];
+
+                            getHyperplane(points, ref c, proj_base, rank - 1, columns);
+                            triangleFaceOrientation(points, rank, columns, c);
+                            halfSpaceConstraints(ref c);
+                            for (int i = 0; i < (N_DIMENSIONS + 1); i++)
+                            {
+                                constraints[c_base + c_counter] = c[i];
+                                c_counter++;
+                            }
+
+                            for (int i = 1; i < K + 1; i++)
+                            {
+                                columns[i - 1] = 1; columns[i] = 0;
+                                getHyperplane(points, ref c, proj_base, rank - 1, columns);
+                                triangleFaceOrientation(points, rank, columns, c);
+                                halfSpaceConstraints(ref c);
+                                for (int j = 0; j < (N_DIMENSIONS + 1); j++)
+                                {
+                                    constraints[c_base + c_counter] = c[j];
+                                    c_counter++;
+                                }
+                            }
+
+                        }
+                        else
+                        {
+                            float minC;
+                            float maxC;
+                            int coord = 0;
+
+                            for (int i = 0; i < N_DIMENSIONS; i++)
+                                if (proj_base[i] != 0)
+                                    coord = i;
+
+                            minC = float.MaxValue;
+                            maxC = float.MinValue;
+                            for (int p = 0; p < N_DIMENSIONS; p++)
+                            {
+                                minC = Math.Min(minC, points[coord, p]);
+                                maxC = Math.Max(maxC, points[coord, p]);
+                            }
+
+                            float[] consMin = new float[N_DIMENSIONS + 1];
+                            float[] consMax = new float[N_DIMENSIONS + 1];
+
+                            for (int i = 0; i < N_DIMENSIONS; i++)
+                            {
+                                if (i == coord)
+                                    consMin[i] = -1;
+                                else
+                                    consMin[i] = 0;
+                            }
+                            consMin[N_DIMENSIONS] = minC;
+
+                            for (int i = 0; i < N_DIMENSIONS; i++)
+                            {
+                                if (i == coord)
+                                    consMax[i] = 1;
+                                else
+                                    consMax[i] = 0;
+                            }
+                            consMax[N_DIMENSIONS] = -maxC;
+
+                            halfSpaceConstraints(ref consMin);
+                            halfSpaceConstraints(ref consMax);
+
+                            for (int i = 0; i < (N_DIMENSIONS + 1); i++)
+                            {
+                                constraints[c_base + c_counter] = consMin[i];
+                                c_counter++;
+                            }
+
+                            for (int i = 0; i < (N_DIMENSIONS + 1); i++)
+                            {
+                                constraints[c_base + c_counter] = consMax[i];
+                                c_counter++;
+                            }
+                        }
+                    }
+                }
+            }
+            ); // End of Parallel.For
         }
 
         public string getConstraintsStr()

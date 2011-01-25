@@ -7,9 +7,12 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Configuration;
+using System.Collections;
 using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.StorageClient;
 using Microsoft.WindowsAzure.ServiceRuntime;
+
+using RasterizerTables;
 
 namespace Microsoft.Samples.ServiceHosting.Thumbnails
 {
@@ -17,6 +20,7 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
     {
         private static CloudBlobClient blobStorage;
         private static CloudQueueClient queueStorage;
+        private static TableServiceContext tableServiceContext;
 
         private static bool s_createdContainerAndQueue = false;
         private static object s_lock = new Object();
@@ -52,6 +56,8 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
                     CloudQueue queue = queueStorage.GetQueueReference("inputreceiver");
 
                     queue.CreateIfNotExist();
+
+                    tableServiceContext = new TableServiceContext(storageAccount.TableEndpoint.ToString(), storageAccount.Credentials);
                 }
                 catch (WebException)
                 {
@@ -76,6 +82,12 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
         {
             CreateOnceContainerAndQueue();
             return queueStorage.GetQueueReference("inputreceiver");
+        }
+
+        private TableServiceContext GetTableServiceContext()
+        {
+            CreateOnceContainerAndQueue();
+            return tableServiceContext;
         }
 
         private string GetMimeType(string Filename)
@@ -111,10 +123,18 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
                 blob.Properties.ContentType = GetMimeType(upload.FileName);
                 blob.UploadFromStream(upload.FileContent);
 
-                if(isHeightMap.Checked)
+                if (isHeightMap.Checked)
                     name += "\ny";
                 else
                     name += "\nn";
+
+                name += "\n" + upload.FileName;
+
+                if (runParallel.Checked)
+                    name += "\ny";
+                else
+                    name += "\nn";
+
                 GetInputReceiverQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(name)));
 
                 System.Diagnostics.Trace.WriteLine(String.Format("Enqueued '{0}'", name));
@@ -125,11 +145,21 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
         {
             try
             {
-                results.DataSource = from o in GetResultsContainer().GetDirectoryReference("results").ListBlobs()
-                                        select new { Url = o.Uri};
+                // Get all elements from ResultsTable table
+                var qResults = from c in GetTableServiceContext().CreateQuery<ResultsTable>("ResultsTable").Execute() select c;
+
+                results.DataSource = from o in qResults
+                                     select
+                                     new
+                                     {
+                                         DatasetUrl = o.DatasetURL,
+                                         ResultUrl = o.ResultURL,
+                                         Filename = o.DatasetFilename,
+                                         Type = o.IsParallel ? "Parallel" : "Sequential",
+                                         Time = o.Time
+                                     };
+
                 results.DataBind();
-
-
             }
             catch (Exception)
             {
