@@ -12,6 +12,8 @@ using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.StorageClient;
 using Microsoft.WindowsAzure.ServiceRuntime;
 
+using System.Linq;
+
 using RasterizerTables;
 
 namespace Microsoft.Samples.ServiceHosting.Thumbnails
@@ -141,6 +143,11 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
             }
         }
 
+        private static T Cast<T>(T typeHolder, Object x)
+        {
+            return (T)x;
+        }
+
         protected void Page_PreRender(object sender, EventArgs e)
         {
             try
@@ -148,16 +155,18 @@ namespace Microsoft.Samples.ServiceHosting.Thumbnails
                 // Get all elements from ResultsTable table
                 var qResults = from c in GetTableServiceContext().CreateQuery<ResultsTable>("ResultsTable").Execute() select c;
 
-                results.DataSource = from o in qResults
-                                     select
-                                     new
-                                     {
-                                         DatasetUrl = o.DatasetURL,
-                                         ResultUrl = o.ResultURL,
-                                         Filename = o.DatasetFilename,
-                                         Type = o.IsParallel ? "Parallel" : "Sequential",
-                                         Time = o.Time
-                                     };
+                var resultsList = from o in qResults
+                                  select
+                                  new
+                                  {
+                                      DatasetUrl = o.DatasetURL,
+                                      ResultUrl = o.ResultURL,
+                                      Filename = o.DatasetFilename,
+                                      Type = o.IsParallel ? "Parallel" : "Sequential",
+                                      Time = o.Time
+                                  };
+
+                results.DataSource = resultsList;
 
                 results.DataBind();
             }
