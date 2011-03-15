@@ -1,3 +1,5 @@
+/* Deprecated: file not used anymore */
+
 #ifndef __TESTER_H
 #define __TESTER_H
 

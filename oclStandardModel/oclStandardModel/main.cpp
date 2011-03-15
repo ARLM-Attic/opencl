@@ -1,4 +1,33 @@
+/* Federal University of Rio Grande do Sul (UFRGS)
+ * Instituto de Informatica
+ *
+ * C++/OpenCL/OpenMP Rasterizer. Receives either a heightmap or a mesh of
+ * triangles as input and rasterize it using the "Standard Model" presented in
+ *
+ *		Andres, E. Discrete linear objects in dimension n: the standard model.
+ *		Graphical Models 65 (2003) 92–111.
+ *
+ * Requirements:
+ *	- OCLpp
+ *      Win32: http://opencl.codeplex.com/releases
+ *      Source: http://opencl.codeplex.com/SourceControl/list/changesets
+ *
+ *  - AntTweakBar
+ *      Multi-platform: http://www.antisphere.com/Wiki/tools:anttweakbar?sb=tools:anttweakbar
+ *
+ *	- Nvidia GPU Computing SDK / CUDA SDK
+ *      Multi-platform: http://developer.nvidia.com/object/gpucomputing.html
+ *
+ *
+ * Developed by Bruno Jurkovski and Leonardo Chatain (2010)
+ * Advised by Leandro A. F. Fernandes and Manuel M. Oliveira
+ *
+ */
+
+// Use this definition if you have an OpenCL enabled GPU
 //#define _USE_GPU_
+// Use this when running benchmarks (to save a "benchmarks.csv" file with the results)
+//#define _RUN_BENCHMARK
 
 #include <cstring>
 #include <cstdlib>
@@ -21,14 +50,17 @@
 using namespace std;
 
 /* GL ****************************************/
-vector<float> points;
-vector<float> axis;
+vector<float> points;	// Points that will be rasterized
+vector<float> axis;		// Axis points to be rasterized
 
+// Window Dimensions
 unsigned int width = 800, height = 600;
 unsigned int iGLUTWindowHandle;
 
+// Misc Functions
 void render();
 
+// Callbacks
 void initDrawArray(const Rasterizer& rasterizer);
 void InitGL(int argc, const char** argv);
 void DisplayGL();
@@ -47,20 +79,21 @@ float g_Rotation[] = {0.0f, 0.0f, 0.0f, 1.0f};
 int g_AutoRotate = 0;
 int g_RotateTime = 0;
 float g_RotateStart[] = {0.0f, 0.0f, 0.0f, 1.0f};
-char* g_Filename = NULL;
-bool g_UseGpuResults = false;
-bool g_IsHeightMap = false;
-char* g_ResultFilename = NULL;
+char* g_Filename = NULL;		// Input filename
+bool g_IsHeightMap = false;		// Kind of input (height map or mesh of triangles)
+char* g_ResultFilename = NULL;	// Filename of an already computed output, for comparison
 
 typedef enum {
 	CPU_RESULTS,
 	OMP_RESULTS,
 	GPU_RESULTS
 } RasterizerVersion;
-TwEnumVal resultsEV[] = {{CPU_RESULTS, "CPU"}, {OMP_RESULTS, "OpenMP"}, {GPU_RESULTS, "GPU"}};
-TwType resultsType;
-RasterizerVersion version = CPU_RESULTS;
 
+TwEnumVal resultsEV[] = {{CPU_RESULTS, "CPU"}, {OMP_RESULTS, "OpenMP"}, {GPU_RESULTS, "GPU"}};
+TwType resultsType;							// TweakBar handler of type "RasterizerVersion"
+RasterizerVersion version = CPU_RESULTS;	// Version appearing on the screen
+
+// Getters and Setters for the interface (TweakBar)
 void TW_CALL GetVersionCB(void *value, void *clientData);
 void TW_CALL SetVersionCB(const void *value, void *clientData);
 
@@ -86,7 +119,7 @@ void openFile(const char* inputFile, const bool isHeightMap);
 int main(int argc, const char* argv[]) {
 	initializeTweakBar();
 
-	// offToTriangles("neptune.off", "neptuneF.txt", 160);
+	//offToTriangles("neptune.off", "neptuneF.txt", 160);
 
 	//datasets: ../datasets/d1.txt true
 	//			hand.txt false
@@ -104,7 +137,8 @@ int main(int argc, const char* argv[]) {
 			openFile(inputFile, inputIsHeightMap);
 		}
 
-	/*
+	// Code to run benchmarks (don't need to use the graphical interface)
+#ifdef _RUN_BENCHMARK
 	const char* files[] = {"hand.txt", "neptune.txt", "../datasets/d1.txt"};
 	const bool hmaps[] = {false, false, true};
 
@@ -113,17 +147,23 @@ int main(int argc, const char* argv[]) {
 		for(int j=0; j<15; j++)
 			openFile(files[i], hmaps[i]);
 	}
-	printf("finished!\n");
-	*/
+	printf("Finished!\n");
+#endif
 
 	InitGL(argc, argv);
 	glutMainLoop();
 	return 0;
 }
 
+//
+//	Create each one of the Rasterizers (CPU, OpenMP and GPU, if available)
+//	and run it for the given input.
+//
 void openFile(const char* inputFile, const bool isHeightMap) {
-	//cout << "Opening " << inputFile << "..." << endl;
-	//FILE* bFile = fopen("benchmarks.csv", "a+");
+#ifdef _RUN_BENCHMARK
+	cout << "Opening " << inputFile << "..." << endl;
+	FILE* bFile = fopen("benchmarks.csv", "a+");
+#endif
 
 	cpuR.readInput(inputFile, isHeightMap);
 	cpuR.initializeConstraints();
@@ -132,9 +172,11 @@ void openFile(const char* inputFile, const bool isHeightMap) {
 	cpuR.stSimplex();
 	time = clock() - time;
 	cpuR.fillVolume();
-	
-	//cout << "CPU version took " << time << "ms!" << endl;
-	//fprintf(bFile, "%s,CPU,%d\n", inputFile, time);
+
+#ifdef _RUN_BENCHMARK
+	cout << "CPU version took " << time << "ms!" << endl;
+	fprintf(bFile, "%s,CPU,%d\n", inputFile, time);
+#endif
 
 	ompR.readInput(inputFile, isHeightMap);
 	ompR.initializeConstraints();
@@ -143,8 +185,11 @@ void openFile(const char* inputFile, const bool isHeightMap) {
 	ompR.stSimplex();
 	time = clock() - time;
 	ompR.fillVolume();
-	//cout << "OpenMP version took " << time << "ms!" << endl;
-	//fprintf(bFile, "%s,OpenMP,%d\n", inputFile, time);
+
+#ifdef _RUN_BENCHMARK
+	cout << "OpenMP version took " << time << "ms!" << endl;
+	fprintf(bFile, "%s,OpenMP,%d\n", inputFile, time);
+#endif
 
 #ifdef _USE_GPU_
 	gpuR.readInput(inputFile, isHeightMap);
@@ -157,14 +202,24 @@ void openFile(const char* inputFile, const bool isHeightMap) {
 	gpuR.readResults();
 	time = clock() - time;
 	gpuR.fillVolume();
-	//cout << "GPU version took " << time << "ms!" << endl;
-	//fprintf(bFile, "%s,GPU,%d\n", inputFile, time);
+
+	#ifdef _RUN_BENCHMARK
+		cout << "GPU version took " << time << "ms!" << endl;
+		fprintf(bFile, "%s,GPU,%d\n", inputFile, time);
+	#endif
 #endif
 
-	//fclose(bFile);
+#ifdef _RUN_BENCHMARK
+	fclose(bFile);
+#endif
+
 	initDrawArray(cpuR);
 }
 
+//
+//	Creation of the interface; Details about each function can be found here:
+//	http://www.antisphere.com/Wiki/tools:anttweakbar?sb=tools:anttweakbar
+//
 void initializeTweakBar() {
 	TwInit(TW_OPENGL, NULL);
 
@@ -190,7 +245,7 @@ void initializeTweakBar() {
 
 void InitGL(int argc, const char **argv)
 {
-	// initialize GLUT 
+	// Initialize GLUT 
 	glutInit(&argc, (char **)argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
 	glutInitWindowPosition (glutGet(GLUT_SCREEN_WIDTH)/2 - width/2, 
@@ -198,7 +253,7 @@ void InitGL(int argc, const char **argv)
 	glutInitWindowSize(width, height);
 	iGLUTWindowHandle = glutCreateWindow("oclStandardModel Rasterizer");
 
-	// register glut callbacks
+	// Register glut callbacks
 	glutDisplayFunc(DisplayGL);
 	glutReshapeFunc(Reshape);
 	glutIdleFunc(Idle);
@@ -212,6 +267,11 @@ void InitGL(int argc, const char **argv)
 	TwGLUTModifiersFunc(glutGetModifiers);
 }
 
+//
+//	Prepare the volume to be drawn on the screen.
+//	Receives a Rasterizer and use its volume (internal attribute)
+//	to fill the points vector.
+//
 void initDrawArray(const Rasterizer& rasterizer)
 {
 	points.clear();
@@ -229,6 +289,12 @@ void initDrawArray(const Rasterizer& rasterizer)
 				}
 }
 
+//
+//	Aux function to render a text on the screen.
+//	Receives it's position, font and content and print rasterize it.
+//	(the content works like the printf function: a string with the format
+//	 followed by the referenced variables).
+//
 void drawText(const float x, const float y, const float z, void* font, const char* format, ...)
 {
 	int i, len;
@@ -250,8 +316,9 @@ void drawText(const float x, const float y, const float z, void* font, const cha
 }
 
 
-// render image using OpenCL
-//*****************************************************************************
+//
+// Render image using OpenCL
+//
 void render()
 {
 	glClearColor(0, 0, 0, 1);
@@ -261,6 +328,9 @@ void render()
 		glPushMatrix();
 			glColor3f(0, 1, 0);
 			glBegin(GL_LINES);
+				//
+				//	Draw X,Y,Z axis.
+				//
 				glVertex3f(0,0,0);
 				glVertex3f(10,0,0);
 				glVertex3f(0,0,0);
@@ -273,17 +343,20 @@ void render()
 	if(points.size() > 0) {
 		glPushMatrix();
 				glColor3f(0.95, 0.2, 0.2);
+				//
+				//	Draw the points array
+				//
 				glEnableClientState(GL_VERTEX_ARRAY);
 				glVertexPointer(3, GL_FLOAT, 0, &points[0]);
 				glDrawArrays(GL_POINTS, 0, points.size()/3);
 				glDisableClientState(GL_VERTEX_ARRAY);
-			//glPopMatrix(); - was uncommented... ???
 		glPopMatrix();
 	}
 }
 
+//
 // Display callback for GLUT main loop
-//*****************************************************************************
+//
 void DisplayGL()
 {
 	float mat[4*4]; // rotation matrix
@@ -296,6 +369,9 @@ void DisplayGL()
 	glLoadIdentity();
 
 	glPushMatrix();
+		//
+		// Compute scene rotation based on a quaternion
+		//
 		if(g_AutoRotate)  {
 			float axis[3] = { 0, 1, 0 };
 			float angle = (float)(glutGet(GLUT_ELAPSED_TIME)-g_RotateTime)/1000.0f;
@@ -343,12 +419,12 @@ void Reshape(int x, int y)
 }
 
 // GL Idle time callback
-//*****************************************************************************
 void Idle()
 {
     glutPostRedisplay();
 }
 
+/* TweakBar Callbacks */
 void TW_CALL GetVersionCB(void *value, void *clientData) {
 	*(RasterizerVersion *)(value) = version;
 }

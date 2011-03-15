@@ -1,6 +1,7 @@
 #define PROJ(ln, col) (proj[(ln)*(N_DIMENSIONS+2)+(col)])
 #define PROJ_BASE (&(proj[(d)*(N_DIMENSIONS+2)]))
 
+/* For more information about each function, check cpuRasterizer.h */
 
 void columnEchelonForm(SMatrix matrix, int* const rank, int* const independentCols);
 
@@ -160,6 +161,9 @@ __kernel void stSimplex(__global const float* const simplices,
 		}
 
 		/*
+		//	Didn't work in my current GPU ("Out of Resources" error) so this is now done in the CPU.
+		//	Since it (probably) may be used with better GPUs, I decided to let the code commented here.
+		//
 		// Fill a volume:
 		float minCoord[] = {9999, 9999, 9999};
 		float maxCoord[] = {-9999, -9999, -9999};

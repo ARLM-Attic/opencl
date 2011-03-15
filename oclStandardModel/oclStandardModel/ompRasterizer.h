@@ -9,6 +9,8 @@
 #include <cstdlib>
 #include <omp.h>
 
+/* For more information about each function, check cpuRasterizer.h */
+
 class OMP_Rasterizer : public Rasterizer {
 protected:
 public:
