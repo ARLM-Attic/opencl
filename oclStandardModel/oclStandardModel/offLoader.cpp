@@ -70,13 +70,13 @@ void offToTriangles(const char* offFilename, const char* outputFilename, float s
 		if(scale<0) scale = 1;
 		else scale = scale/(float)maxDist;
 
-		FILE* fHands = fopen(outputFilename, "w");
-		fprintf(fHands, "%d\n\n", mesh.numTriangles);
+		FILE* fTriangles = fopen(outputFilename, "w");
+		fprintf(fTriangles, "%d\n\n", mesh.numTriangles);
 		for(int i=0; i<mesh.numTriangles; i++) {
-			fprintf(fHands, "%f %f %f\n", scale*(mesh.triangles[i].point[0].x-minX), scale*(mesh.triangles[i].point[1].x-minX), scale*(mesh.triangles[i].point[2].x-minX));
-			fprintf(fHands, "%f %f %f\n", scale*(mesh.triangles[i].point[0].y-minY), scale*(mesh.triangles[i].point[1].y-minY), scale*(mesh.triangles[i].point[2].y-minY));
-			fprintf(fHands, "%f %f %f\n", scale*(mesh.triangles[i].point[0].z-minZ), scale*(mesh.triangles[i].point[1].z-minZ), scale*(mesh.triangles[i].point[2].z-minZ));
-			fprintf(fHands, "\n");
+			fprintf(fTriangles, "%f %f %f\n", scale*(mesh.triangles[i].point[0].x-minX), scale*(mesh.triangles[i].point[1].x-minX), scale*(mesh.triangles[i].point[2].x-minX));
+			fprintf(fTriangles, "%f %f %f\n", scale*(mesh.triangles[i].point[0].y-minY), scale*(mesh.triangles[i].point[1].y-minY), scale*(mesh.triangles[i].point[2].y-minY));
+			fprintf(fTriangles, "%f %f %f\n", scale*(mesh.triangles[i].point[0].z-minZ), scale*(mesh.triangles[i].point[1].z-minZ), scale*(mesh.triangles[i].point[2].z-minZ));
+			fprintf(fTriangles, "\n");
 		}
-		fclose(fHands);
+		fclose(fTriangles);
 }
